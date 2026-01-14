@@ -1,19 +1,22 @@
+"""System monitor module."""
+
 import ctypes
-import signal
-import sys
 from ctypes import wintypes
+from typing import ClassVar
 
 import psutil
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 # --- Windows API 定義 ---
 user32 = ctypes.windll.user32
 
 
 class RECT(ctypes.Structure):
-    _fields_ = [
+    """Wraps the RECT structure from Windows API."""
+
+    _fields_: ClassVar[list[tuple[str, type]]] = [
         ("left", wintypes.LONG),
         ("top", wintypes.LONG),
         ("right", wintypes.LONG),
@@ -21,26 +24,24 @@ class RECT(ctypes.Structure):
     ]
 
 
-# 定数
 GWLP_HWNDPARENT = -8
 SM_CXSCREEN = 0
 SM_CYSCREEN = 1
 
 
 def get_tray_notify_width_physical(hwnd_taskbar: int) -> int:
+    """Get the physical width of the TrayNotifyWnd area."""
     hwnd_tray = user32.FindWindowExW(hwnd_taskbar, 0, "TrayNotifyWnd", None)
     if not hwnd_tray:
         return 150
     rect = RECT()
     if user32.GetWindowRect(hwnd_tray, ctypes.byref(rect)):
-        width = rect.right - rect.left
-        print(width)
-        return width if 0 < width < 1000 else 150
+        return rect.right - rect.left
     return 150
 
 
-def is_fullscreen_app_active(hwnd_taskbar) -> bool:
-    """現在アクティブなウィンドウがフルスクリーンかどうか判定する"""
+def is_fullscreen_app_active(hwnd_taskbar: int) -> bool:
+    """Check if a fullscreen application is currently active."""
     if not user32.IsWindowVisible(hwnd_taskbar):
         return True
 
@@ -48,36 +49,36 @@ def is_fullscreen_app_active(hwnd_taskbar) -> bool:
     if not hwnd_foreground:
         return False
 
-    # デスクトップやタスクバー自体がアクティブな場合は除外
-    # (これを除外しないとデスクトップを表示した時に隠れてしまう)
+    # Exclude cases where the desktop or taskbar itself is active
+    # (If not excluded, the monitor will hide when the desktop is shown)
     buf = ctypes.create_unicode_buffer(256)
     user32.GetClassNameW(hwnd_foreground, buf, 256)
     class_name = buf.value
     if class_name in ("WorkerW", "Progman", "Shell_TrayWnd", "DV2ControlHost"):
         return False
 
-    # ウィンドウの矩形取得
+    # Get window rectangle
     rect = RECT()
     user32.GetWindowRect(hwnd_foreground, ctypes.byref(rect))
 
-    # 画面解像度取得
+    # Get screen resolution
     scr_w = user32.GetSystemMetrics(SM_CXSCREEN)
     scr_h = user32.GetSystemMetrics(SM_CYSCREEN)
 
-    # 判定: ウィンドウサイズが画面サイズと一致すればフルスクリーン
-    if (rect.right - rect.left) >= scr_w and (rect.bottom - rect.top) >= scr_h:
-        return True
-
-    return False
+    # If window size matches screen size, it's fullscreen
+    return (rect.right - rect.left) >= scr_w and (rect.bottom - rect.top) >= scr_h
 
 
 class TaskbarMonitor(QWidget):
+    """Qt widget that monitors system stats and stays in the taskbar."""
+
     def __init__(self) -> None:
+        """Initialize the TaskbarMonitor widget."""
         super().__init__()
         self._hwnd_taskbar: int = 0
         self._hwnd_self: int = 0
 
-        # 設定
+        # Settings
         self._margin_right: int = 10
         self._fixed_width: int = 100
 
@@ -85,37 +86,30 @@ class TaskbarMonitor(QWidget):
         QTimer.singleShot(100, self.start_monitor)
 
     def init_ui(self) -> None:
+        """Initialize the UI components."""
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
 
-        self._cpu_label = QLabel("Wait...")
-        self._ram_label = QLabel("Wait...")
+        self._info_label = QLabel("Loading...")
+        self._info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._info_label.setStyleSheet("background: transparent;")
+        self._info_label.setTextFormat(Qt.TextFormat.RichText)
 
-        font = QFont("Segoe UI", 9)
-        font.setBold(True)
-
-        for label in (self._cpu_label, self._ram_label):
-            label.setFont(font)
-            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            label.setStyleSheet("color: white; background: transparent;")
-            label.setFixedHeight(20)
-            layout.addWidget(label)
-
+        layout.addWidget(self._info_label)
         self.setLayout(layout)
-        self.setStyleSheet("QWidget { background-color: rgba(0, 0, 0, 100); border-radius: 4px; }")
 
     def start_monitor(self) -> None:
+        """Start the monitoring process."""
         self._hwnd_self = int(self.winId())
         self._hwnd_taskbar = user32.FindWindowW("Shell_TrayWnd", None)
         if not self._hwnd_taskbar:
             QTimer.singleShot(1000, self.start_monitor)
             return
 
-        # オーナー設定 (タスクバーの子分にする)
+        # Set owner (make it a child of the taskbar)
         user32.SetWindowLongPtrW(self._hwnd_self, GWLP_HWNDPARENT, self._hwnd_taskbar)
 
         self._timer = QTimer(self)
@@ -124,33 +118,47 @@ class TaskbarMonitor(QWidget):
         self.update_loop()
 
     def update_loop(self) -> None:
-        # --- フルスクリーン検知ロジック ---
+        """Invoke the main update loop for monitoring."""
         if is_fullscreen_app_active(self._hwnd_taskbar):
-            # フルスクリーンアプリがいるなら隠す
-            print("Fullscreen app detected. Hiding monitor.")
+            # Hide if a fullscreen app is active
             self._cpu_label.setText("")
             self._ram_label.setText("")
-            return  # 処理中断
+            return
         self.raise_()
 
-        # --- 数値更新 ---
         cpu = psutil.cpu_percent()
         ram = psutil.virtual_memory().percent
+        html_content = f"""
+        <div style="
+            font-family: 'Consolas', 'monospace';
+            font-size: 11px;
+            padding: 0px;
+        ">
+            <table width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                    <td align="right" style="color: #aaaaaa; padding-right: 4px;">CPU:</td>
+                    <td align="left" style="color: #ffffff;">{int(cpu)}<span style="font-size:9px">%</span></td>
+                    <td align="left" style="color: #ffffff; font-size: 8px; padding-left:5px;">HOGEHOGE</td>
+                </tr>
+                <tr>
+                    <td align="right" style="color: #aaaaaa; padding-right: 4px;">RAM:</td>
+                    <td align="left" style="color: #aaaaaa;">{int(ram)}<span style="font-size:9px">%</span></td>
+                    <td align="left"></td>
+                </tr>
+            </table>
+        </div>
+        """
 
-        if self._cpu_label and self._ram_label:
-            self._cpu_label.setText(f"CPU: {int(cpu)}%")
-            self._ram_label.setText(f"RAM: {int(ram)}%")
-            color = "#ff5555" if cpu > 80 else "white"
-            self._cpu_label.setStyleSheet(f"color: {color}; background: transparent;")
+        self._info_label.setText(html_content)
 
-        # --- 位置合わせ ---
         self.snap_position()
 
     def snap_position(self) -> None:
+        """Snap the widget position to the taskbar tray area."""
         if not self._hwnd_taskbar:
             return
 
-        # 物理座標取得
+        # Get physical coordinates
         tb_rect = RECT()
         user32.GetWindowRect(self._hwnd_taskbar, ctypes.byref(tb_rect))
 
@@ -161,7 +169,7 @@ class TaskbarMonitor(QWidget):
 
         tray_phys_w = get_tray_notify_width_physical(self._hwnd_taskbar)
 
-        # 論理座標変換
+        # Convert physical to logical coordinates
         dpr = self.devicePixelRatio()
         my_log_w = self._fixed_width
         my_log_h = (tb_phys_h / dpr) - 4
@@ -174,15 +182,3 @@ class TaskbarMonitor(QWidget):
 
         self.move(target_log_x, target_log_y)
         self.resize(my_log_w, int(my_log_h))
-
-
-def sigint_handler(signum, frame):
-    QApplication.quit()
-
-
-if __name__ == "__main__":
-    signal.signal(signal.SIGINT, sigint_handler)
-    app = QApplication(sys.argv)
-    monitor = TaskbarMonitor()
-    monitor.show()
-    sys.exit(app.exec())

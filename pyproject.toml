@@ -1,10 +1,41 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "systemmonitor"
+name = "obidome"
 version = "0.1.0"
-description = "Add your description here"
+description = "System monitor for Windows 11 that stays in the taskbar."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "psutil>=7.2.1",
     "pyside6>=6.10.1",
+]
+
+[project.scripts]
+obidome = "obidome.main:main"
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+lint.select = ["ALL"]
+lint.ignore = [
+    "D203",  # incorrect-blank-line-before-class conflicts D211
+    "D213",  # multi-line-summary-second-line conflicts D212
+    "FIX002", # Allow TODO
+    "TD003",  # Allow TODO without link
+]
+
+[tool.pyright]
+include = ["src"]
+exclude = ["**/__pycache__"]
+typeCheckingMode = "basic"
+reportMissingImports = "warning"
+reportMissingTypeStubs = "warning"
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.408",
+    "ruff>=0.14.11",
 ]
