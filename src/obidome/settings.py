@@ -52,5 +52,6 @@ class ObidomeSettings(BaseSettings):
     def save(self) -> None:
         """Save the current settings to the YAML configuration file."""
         settings = self.model_dump()
+        CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
         with CONFIG_PATH.open("w", encoding="utf-8") as f:
             safe_dump(settings, f)
