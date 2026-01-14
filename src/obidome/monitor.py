@@ -2,11 +2,14 @@
 
 import ctypes
 from ctypes import wintypes
+from logging import getLogger
 from typing import ClassVar
 
 import psutil
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+
+from obidome.settings import ObidomeSettings
 
 # --- Windows API 定義 ---
 user32 = ctypes.windll.user32
@@ -71,15 +74,18 @@ def is_fullscreen_app_active(hwnd_taskbar: int) -> bool:
 class TaskbarMonitor(QWidget):
     """Qt widget that monitors system stats and stays in the taskbar."""
 
-    def __init__(self) -> None:
+    def __init__(self, settings: ObidomeSettings) -> None:
         """Initialize the TaskbarMonitor widget."""
         super().__init__()
+        self.logger = getLogger(__name__)
+
         self._hwnd_taskbar: int = 0
         self._hwnd_self: int = 0
 
-        # Settings
-        self._margin_right: int = 10
-        self._fixed_width: int = 100
+        self._margin_right: int = settings.margin_right
+        self._container_stylesheet: str = settings.container_stylesheet
+        self._info_label_template: str = settings.info_label
+        self._refresh_interval_msec: int = settings.refresh_interval_msec
 
         self.init_ui()
         QTimer.singleShot(100, self.start_monitor)
@@ -105,15 +111,17 @@ class TaskbarMonitor(QWidget):
         self._hwnd_self = int(self.winId())
         self._hwnd_taskbar = user32.FindWindowW("Shell_TrayWnd", None)
         if not self._hwnd_taskbar:
+            self.logger.warning("Failed to find taskbar window. Retrying in 1 second...")
             QTimer.singleShot(1000, self.start_monitor)
             return
 
         # Set owner (make it a child of the taskbar)
         user32.SetWindowLongPtrW(self._hwnd_self, GWLP_HWNDPARENT, self._hwnd_taskbar)
 
+        self.logger.info("Starting monitor with refresh interval %d ms", self._refresh_interval_msec)
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.update_loop)
-        self._timer.start(1000)
+        self._timer.start(self._refresh_interval_msec)
         self.update_loop()
 
     def update_loop(self) -> None:
@@ -128,22 +136,9 @@ class TaskbarMonitor(QWidget):
         ram = psutil.virtual_memory().percent
         html_content = f"""
         <div style="
-            font-family: 'Consolas', 'monospace';
-            font-size: 11px;
-            padding: 0px;
+            {self._container_stylesheet}
         ">
-            <table width="100%" cellspacing="0" cellpadding="0">
-                <tr>
-                    <td align="right" style="color: #aaaaaa; padding-right: 4px;">CPU:</td>
-                    <td align="left" style="color: #ffffff;">{int(cpu)}<span style="font-size:9px">%</span></td>
-                    <td align="left" style="color: #ffffff; font-size: 8px; padding-left:5px;">HOGEHOGE</td>
-                </tr>
-                <tr>
-                    <td align="right" style="color: #aaaaaa; padding-right: 4px;">RAM:</td>
-                    <td align="left" style="color: #aaaaaa;">{int(ram)}<span style="font-size:9px">%</span></td>
-                    <td align="left"></td>
-                </tr>
-            </table>
+            {self._info_label_template.format(cpu=cpu, ram=ram)}
         </div>
         """
 

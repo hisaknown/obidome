@@ -1,10 +1,15 @@
 """Obidome - System monitor for Windows 11 that stays in the taskbar."""
+
 import signal
 import sys
+from logging import basicConfig, getLogger
 
 from PySide6.QtWidgets import QApplication
 
 from obidome.monitor import TaskbarMonitor
+from obidome.settings import ObidomeSettings
+
+basicConfig(level="DEBUG", format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 
 def sigint_handler(signum: int, frame: object) -> None:
@@ -15,11 +20,18 @@ def sigint_handler(signum: int, frame: object) -> None:
 
 def main() -> None:
     """Invoke the main application."""
+    logger = getLogger(__name__)
+    logger.info("Starting Obidome application...")
+
+    settings = ObidomeSettings()
+
     signal.signal(signal.SIGINT, sigint_handler)
     app = QApplication(sys.argv)
-    monitor = TaskbarMonitor()
+    monitor = TaskbarMonitor(settings)
     monitor.show()
+
     sys.exit(app.exec())
+
 
 if __name__ == "__main__":
     main()
