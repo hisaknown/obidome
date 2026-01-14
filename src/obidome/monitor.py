@@ -6,7 +6,6 @@ from typing import ClassVar
 
 import psutil
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 # --- Windows API 定義 ---
@@ -121,8 +120,7 @@ class TaskbarMonitor(QWidget):
         """Invoke the main update loop for monitoring."""
         if is_fullscreen_app_active(self._hwnd_taskbar):
             # Hide if a fullscreen app is active
-            self._cpu_label.setText("")
-            self._ram_label.setText("")
+            self._info_label.setText("")
             return
         self.raise_()
 
@@ -171,7 +169,7 @@ class TaskbarMonitor(QWidget):
 
         # Convert physical to logical coordinates
         dpr = self.devicePixelRatio()
-        my_log_w = self._fixed_width
+        my_log_w = self._info_label.sizeHint().width()
         my_log_h = (tb_phys_h / dpr) - 4
 
         target_phys_x = tb_phys_x + tb_phys_w - tray_phys_w - (my_log_w * dpr) - (self._margin_right * dpr)
