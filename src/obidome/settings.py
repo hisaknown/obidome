@@ -15,7 +15,7 @@ class ObidomeSettings(BaseSettings):
     margin_right: int = Field(default=10, description="Right margin from the tray area in pixels")
 
     container_stylesheet: str = Field(
-        default=("font-family: 'Consolas', 'monospace';\nfont-size: 11px;\npadding: 0px;\n"),
+        default=("font-family: 'Consolas', 'monospace';\nfont-size: 14px;\npadding: 0px;\n"),
         description="Stylesheet for the container",
     )
     info_label: str = Field(
@@ -23,11 +23,10 @@ class ObidomeSettings(BaseSettings):
     <tr>
         <td align="right" style="color: #aaaaaa; padding-right: 4px;">CPU:</td>
         <td align="left" style="color: #ffffff; white-space: pre;">{cpu:4.1f}<span style="font-size:9px">%</span></td>
-        <td align="left" style="color: #ffffff; font-size: 8px; padding-left:5px;">HOGEHOGE</td>
     </tr>
     <tr>
         <td align="right" style="color: #aaaaaa; padding-right: 4px;">RAM:</td>
-        <td align="left" style="color: #aaaaaa; white-space: pre;">{ram:4.1f}<span style="font-size:9px">%</span></td>
+        <td align="left" style="color: #ffffff; white-space: pre;">{ram:4.1f}<span style="font-size:9px">%</span></td>
         <td align="left"></td>
     </tr>
 </table>
