@@ -5,11 +5,11 @@ from ctypes import wintypes
 from logging import getLogger
 from typing import ClassVar
 
-import psutil
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from obidome.settings import ObidomeSettings
+from obidome.values import LazySystemValueFetcher
 
 # --- Windows API 定義 ---
 user32 = ctypes.windll.user32
@@ -87,6 +87,8 @@ class TaskbarMonitor(QWidget):
         self._info_label_template: str = settings.info_label
         self._refresh_interval_msec: int = settings.refresh_interval_msec
 
+        self._value_fetcher = LazySystemValueFetcher()
+
         self.init_ui()
         QTimer.singleShot(100, self.start_monitor)
 
@@ -132,13 +134,12 @@ class TaskbarMonitor(QWidget):
             return
         self.raise_()
 
-        cpu = psutil.cpu_percent()
-        ram = psutil.virtual_memory().percent
+        self._value_fetcher.clear_cache()
         html_content = f"""
         <div style="
             {self._container_stylesheet}
         ">
-            {self._info_label_template.format(cpu=cpu, ram=ram)}
+            {self._info_label_template.format_map(self._value_fetcher)}
         </div>
         """
 

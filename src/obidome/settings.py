@@ -22,15 +22,15 @@ class ObidomeSettings(BaseSettings):
         default="""<table width="100%" cellspacing="0" cellpadding="0">
     <tr>
         <td align="right" style="color: #aaaaaa; padding-right: 4px;">CPU:</td>
-        <td align="left" style="color: #ffffff; white-space: pre;">{cpu:4.1f}<span style="font-size:9px">%</span></td>
+        <td align="left" style="color: #ffffff; white-space: pre;">{cpu_percent:4.1f}<span style="font-size:9px">%</span></td>
     </tr>
     <tr>
         <td align="right" style="color: #aaaaaa; padding-right: 4px;">RAM:</td>
-        <td align="left" style="color: #ffffff; white-space: pre;">{ram:4.1f}<span style="font-size:9px">%</span></td>
+        <td align="left" style="color: #ffffff; white-space: pre;">{ram_percent:4.1f}<span style="font-size:9px">%</span></td>
         <td align="left"></td>
     </tr>
 </table>
-""",
+""",  # noqa: E501
         description="HTML template for the info label",
     )
 

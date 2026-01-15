@@ -28,6 +28,7 @@ lint.ignore = [
     "D213",  # multi-line-summary-second-line conflicts D212
     "FIX002", # Allow TODO
     "TD003",  # Allow TODO without link
+    "COM812",  # Allow missing trailing comma; care by linting
 ]
 
 [tool.pyright]
