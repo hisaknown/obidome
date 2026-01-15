@@ -5,15 +5,25 @@ from logging import getLogger
 
 import psutil
 
+from obidome.plot import SparklineGenerator
+from obidome.settings import SparklineSettings
+
 
 class LazySystemValueFetcher(dict):
     """A dictionary-like class that fetches system values lazily."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        cpu_percent_plot_settings: SparklineSettings,
+        ram_percent_plot_settings: SparklineSettings,
+    ) -> None:
         """Initialize the LazySystemValueFetcher."""
         super().__init__()
         self.logger = getLogger(__name__)
         self._cache = {}
+
+        self._cpu_percent_plot_settings = cpu_percent_plot_settings
+        self._ram_percent_plot_settings = ram_percent_plot_settings
 
         self.is_admin = ctypes.windll.shell32.IsUserAnAdmin()
         if not self.is_admin:
@@ -38,7 +48,16 @@ class LazySystemValueFetcher(dict):
     @property
     def cpu_percent(self) -> float:
         """Get the current CPU usage percentage."""
-        return psutil.cpu_percent(interval=None)
+        if "psutil.cpu_percent" not in self._cache:
+            self._cache["psutil.cpu_percent"] = psutil.cpu_percent(interval=None)
+        return self._cache["psutil.cpu_percent"]
+
+    @property
+    def cpu_percent_plot(self) -> str:
+        """Get a sparkline plot of the current CPU usage percentage."""
+        if not hasattr(self, "_cpu_percent_plotter"):
+            self._cpu_percent_plotter = SparklineGenerator(self._cpu_percent_plot_settings)
+        return self._cpu_percent_plotter.update_and_get_b64(self.cpu_percent)
 
     @property
     def ram_percent(self) -> float:
@@ -46,6 +65,13 @@ class LazySystemValueFetcher(dict):
         if "psutil.virtual_memory" not in self._cache:
             self._cache["psutil.virtual_memory"] = psutil.virtual_memory()
         return self._cache["psutil.virtual_memory"].percent
+
+    @property
+    def ram_percent_plot(self) -> str:
+        """Get a sparkline plot of the current RAM usage percentage."""
+        if not hasattr(self, "_ram_percent_plotter"):
+            self._ram_percent_plotter = SparklineGenerator(self._ram_percent_plot_settings)
+        return self._ram_percent_plotter.update_and_get_b64(self.ram_percent)
 
     @property
     def ram_total(self) -> int:
@@ -94,7 +120,6 @@ class LazySystemValueFetcher(dict):
                 reverse=True,
             )
         return self._cache["psutil.process_iter.cpu_percent"][0].info["name"]
-
 
     @property
     def cpu_demanding_process_cpu_percent(self) -> float:

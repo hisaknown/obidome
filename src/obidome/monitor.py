@@ -87,7 +87,10 @@ class TaskbarMonitor(QWidget):
         self._info_label_template: str = settings.info_label
         self._refresh_interval_msec: int = settings.refresh_interval_msec
 
-        self._value_fetcher = LazySystemValueFetcher()
+        self._value_fetcher = LazySystemValueFetcher(
+            cpu_percent_plot_settings=settings.cpu_percent_plot_settings,
+            ram_percent_plot_settings=settings.ram_percent_plot_settings,
+        )
 
         self.init_ui()
         QTimer.singleShot(100, self.start_monitor)
