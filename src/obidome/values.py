@@ -22,14 +22,28 @@ class LazySystemValueFetcher(dict):
         self.logger = getLogger(__name__)
         self._cache = {}
 
-        self._cpu_percent_plot_settings = cpu_percent_plot_settings
-        self._ram_percent_plot_settings = ram_percent_plot_settings
+        self.load_settings(
+            cpu_percent_plot_settings=cpu_percent_plot_settings,
+            ram_percent_plot_settings=ram_percent_plot_settings,
+        )
 
         self.is_admin = ctypes.windll.shell32.IsUserAnAdmin()
         if not self.is_admin:
             self.logger.warning(
                 "Application is not running with administrator privileges. Some values may be unavailable."
             )
+
+    def load_settings(
+        self, cpu_percent_plot_settings: SparklineSettings, ram_percent_plot_settings: SparklineSettings
+    ) -> None:
+        """Load settings for the value fetcher."""
+        self._cpu_percent_plot_settings = cpu_percent_plot_settings
+        if hasattr(self, "_cpu_percent_plotter"):
+            del self._cpu_percent_plotter
+        self._ram_percent_plot_settings = ram_percent_plot_settings
+        if hasattr(self, "_ram_percent_plotter"):
+            del self._ram_percent_plotter
+        self.logger.info("System value fetcher settings loaded.")
 
     def __getitem__(self, key: str) -> float | int | str:
         """Fetch the system value for the given key."""

@@ -48,7 +48,7 @@ class ObidomeSettings(BaseSettings):
 
     container_stylesheet: str = Field(
         default=("font-family: 'Consolas', 'monospace';\nfont-size: 14px;\npadding: 0px;\n"),
-        description="Stylesheet for the container",
+        description="Stylesheet for the container. Can be multiline.",
     )
     info_label: str = Field(
         default="""
@@ -66,7 +66,7 @@ class ObidomeSettings(BaseSettings):
     </tr>
 </table>
 """,  # noqa: E501
-        description="HTML template for the info label",
+        description="HTML template for the info label. Can be multiline.",
     )
 
     model_config = SettingsConfigDict(yaml_file=CONFIG_PATH)
@@ -81,8 +81,8 @@ class ObidomeSettings(BaseSettings):
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         """Customize the settings sources to use YAML file."""
-        del init_settings, env_settings, dotenv_settings, file_secret_settings  # Unused
-        return (YamlConfigSettingsSource(settings_cls),)
+        del env_settings, dotenv_settings, file_secret_settings  # Unused
+        return (init_settings, YamlConfigSettingsSource(settings_cls))
 
     def save(self) -> None:
         """Save the current settings to the YAML configuration file."""

@@ -26,8 +26,8 @@ def main() -> None:
     settings = ObidomeSettings()
 
     signal.signal(signal.SIGINT, sigint_handler)
-    app = QApplication(sys.argv)
-    monitor = TaskbarMonitor(settings)
+    app = QApplication()
+    monitor = TaskbarMonitor(settings, app)
     monitor.show()
 
     sys.exit(app.exec())

@@ -6,9 +6,11 @@ from logging import getLogger
 from typing import ClassVar
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+from PySide6.QtGui import QAction, QContextMenuEvent
+from PySide6.QtWidgets import QApplication, QLabel, QMenu, QVBoxLayout, QWidget
 
 from obidome.settings import ObidomeSettings
+from obidome.settings_window import SettingsWindow
 from obidome.values import LazySystemValueFetcher
 
 # --- Windows API 定義 ---
@@ -74,23 +76,23 @@ def is_fullscreen_app_active(hwnd_taskbar: int) -> bool:
 class TaskbarMonitor(QWidget):
     """Qt widget that monitors system stats and stays in the taskbar."""
 
-    def __init__(self, settings: ObidomeSettings) -> None:
+    def __init__(self, settings: ObidomeSettings, app: QApplication) -> None:
         """Initialize the TaskbarMonitor widget."""
         super().__init__()
         self.logger = getLogger(__name__)
+        self._app = app
 
         self._hwnd_taskbar: int = 0
         self._hwnd_self: int = 0
 
-        self._margin_right: int = settings.margin_right
-        self._container_stylesheet: str = settings.container_stylesheet
-        self._info_label_template: str = settings.info_label
-        self._refresh_interval_msec: int = settings.refresh_interval_msec
+        self._should_stay = False
 
         self._value_fetcher = LazySystemValueFetcher(
             cpu_percent_plot_settings=settings.cpu_percent_plot_settings,
             ram_percent_plot_settings=settings.ram_percent_plot_settings,
         )
+
+        self.load_settings(settings)
 
         self.init_ui()
         QTimer.singleShot(100, self.start_monitor)
@@ -135,7 +137,6 @@ class TaskbarMonitor(QWidget):
             # Hide if a fullscreen app is active
             self._info_label.setText("")
             return
-        self.raise_()
 
         self._value_fetcher.clear_cache()
         html_content = f"""
@@ -148,7 +149,49 @@ class TaskbarMonitor(QWidget):
 
         self._info_label.setText(html_content)
 
-        self.snap_position()
+        if not self._should_stay:
+            self.raise_()
+            self.snap_position()
+
+    def load_settings(self, settings: ObidomeSettings) -> None:
+        """Reload settings from the settings object."""
+        self._margin_right = settings.margin_right
+        self._container_stylesheet = settings.container_stylesheet
+        self._info_label_template = settings.info_label
+        self._refresh_interval_msec = settings.refresh_interval_msec
+
+        if hasattr(self, "_value_fetcher"):
+            self._value_fetcher.load_settings(
+                cpu_percent_plot_settings=settings.cpu_percent_plot_settings,
+                ram_percent_plot_settings=settings.ram_percent_plot_settings,
+            )
+
+        if hasattr(self, "_timer") and self._timer.isActive():
+            self._timer.setInterval(self._refresh_interval_msec)
+        self.logger.info("Settings reloaded.")
+
+    def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
+        """Show context menu."""
+        self._should_stay = True
+        menu = QMenu(self)
+        settings_action = QAction("Settings", self)
+        settings_action.triggered.connect(self.open_settings)
+        menu.addAction(settings_action)
+
+        quit_action = QAction("Quit", self)
+        quit_action.triggered.connect(self._app.quit)
+        menu.addAction(quit_action)
+
+        menu.exec(event.globalPos())
+        self._should_stay = False
+
+    def open_settings(self) -> None:
+        """Open the settings window."""
+        self._should_stay = True
+        dialog = SettingsWindow(self)
+        if dialog.exec():
+            self.load_settings(ObidomeSettings())
+        self._should_stay = False
 
     def snap_position(self) -> None:
         """Snap the widget position to the taskbar tray area."""
