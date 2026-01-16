@@ -7,7 +7,7 @@ from typing import ClassVar
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QContextMenuEvent
-from PySide6.QtWidgets import QApplication, QLabel, QMenu, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QLabel, QMenu, QSystemTrayIcon, QVBoxLayout, QWidget
 
 from obidome.settings import ObidomeSettings
 from obidome.settings_window import SettingsWindow
@@ -81,6 +81,14 @@ class TaskbarMonitor(QWidget):
         super().__init__()
         self.logger = getLogger(__name__)
         self._app = app
+
+        self._context_menu = self.make_context_menu()
+
+        self._tray_icon = QSystemTrayIcon()
+        self._tray_icon.setContextMenu(self._context_menu)
+        self._tray_icon.setIcon(self._app.windowIcon())
+        self._tray_icon.setToolTip("Obidome")
+        self._tray_icon.show()
 
         self._hwnd_taskbar: int = 0
         self._hwnd_self: int = 0
@@ -173,6 +181,11 @@ class TaskbarMonitor(QWidget):
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:  # noqa: N802
         """Show context menu."""
         self._should_stay = True
+        self._context_menu.exec(event.globalPos())
+        self._should_stay = False
+
+    def make_context_menu(self) -> QMenu:
+        """Create the context menu for the widget."""
         menu = QMenu(self)
         settings_action = QAction("Settings", self)
         settings_action.triggered.connect(self.open_settings)
@@ -182,15 +195,16 @@ class TaskbarMonitor(QWidget):
         quit_action.triggered.connect(self._app.quit)
         menu.addAction(quit_action)
 
-        menu.exec(event.globalPos())
-        self._should_stay = False
+        return menu
 
     def open_settings(self) -> None:
         """Open the settings window."""
         self._should_stay = True
-        dialog = SettingsWindow(self)
-        if dialog.exec():
-            self.load_settings(ObidomeSettings())
+        # Open settings dialog only if not already open
+        if not any(isinstance(w, SettingsWindow) for w in self._app.topLevelWidgets()):
+            dialog = SettingsWindow(self)
+            if dialog.exec():
+                self.load_settings(ObidomeSettings())
         self._should_stay = False
 
     def snap_position(self) -> None:
