@@ -40,6 +40,7 @@ reportMissingTypeStubs = "warning"
 
 [dependency-groups]
 dev = [
+    "nox>=2025.11.12",
     "nuitka>=2.8.9",
     "pyright>=1.1.408",
     "ruff>=0.14.11",
