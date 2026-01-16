@@ -36,6 +36,8 @@ def build_with_nuitka(session: nox.Session) -> None:
         "--onefile",
         "--follow-imports",
         "--windows-icon-from-ico=src/obidome/res/icon.ico",
+        "--windows-disable-console",
+        "--include-data-dir=src/obidome/res=res",
         "--output-dir=.nuitka",
         "--output-filename=obidome.exe",
         "src/obidome/main.py",
