@@ -16,6 +16,7 @@ def str_presenter(dumper: yaml.Dumper, data: str) -> yaml.nodes.ScalarNode:
         return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
     return dumper.represent_scalar("tag:yaml.org,2002:str", data)
 
+
 yaml.add_representer(str, str_presenter)
 
 

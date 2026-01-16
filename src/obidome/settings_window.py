@@ -1,7 +1,7 @@
 """Settings window for Obidome application."""
 
 import json
-from typing import get_args
+from typing import TypeVar, get_args
 
 from pydantic import BaseModel
 from PySide6.QtWidgets import (
@@ -17,6 +17,8 @@ from PySide6.QtWidgets import (
 )
 
 from obidome.settings import ObidomeSettings
+
+T = TypeVar("T")
 
 
 class SettingsWindow(QDialog):
