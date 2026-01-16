@@ -59,7 +59,9 @@ class SettingsWindow(QDialog):
                 form_layout.addRow(f"{k} ({v.description}):", widget)
             elif issubclass(v.annotation, BaseModel):
                 # Nested model
-                widget = self.generate_widgets(form_layout, v.annotation, getattr(current, k))
+                nested_form_layout = QFormLayout()
+                form_layout.addRow(f"{k} ({v.description}):", nested_form_layout)
+                widget = self.generate_widgets(nested_form_layout, v.annotation, getattr(current, k))
             else:
                 continue  # Unsupported type
             ret[k] = widget
