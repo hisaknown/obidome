@@ -5,11 +5,11 @@ from ctypes import wintypes
 from logging import getLogger
 from typing import ClassVar
 
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QAction, QContextMenuEvent
+from PySide6.QtCore import Qt, QTimer, QUrl
+from PySide6.QtGui import QAction, QContextMenuEvent, QDesktopServices
 from PySide6.QtWidgets import QApplication, QLabel, QMenu, QSystemTrayIcon, QVBoxLayout, QWidget
 
-from obidome.settings import ObidomeSettings
+from obidome.settings import CONFIG_PATH, ObidomeSettings
 from obidome.settings_window import SettingsWindow
 from obidome.values import LazySystemValueFetcher
 
@@ -192,6 +192,16 @@ class TaskbarMonitor(QWidget):
         settings_action = QAction("Settings", self)
         settings_action.triggered.connect(self.open_settings)
         menu.addAction(settings_action)
+
+        reload_action = QAction("Reload Settings", self)
+        reload_action.triggered.connect(lambda: self.load_settings(ObidomeSettings()))
+        menu.addAction(reload_action)
+
+        open_settings_dir_action = QAction("Open Settings Directory", self)
+        open_settings_dir_action.triggered.connect(
+            lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(CONFIG_PATH.parent)))
+        )
+        menu.addAction(open_settings_dir_action)
 
         quit_action = QAction("Quit", self)
         quit_action.triggered.connect(self._app.quit)
