@@ -53,6 +53,12 @@ class SettingsWindow(QDialog):
                 else:
                     widget = QLineEdit(getattr(current, k))
                 form_layout.addRow(f"{k} ({v.description}):", widget)
+            elif str(v.annotation) == "dict[str, str]":
+                widget = QTextEdit()
+                dict_value = getattr(current, k)
+                widget.setPlainText(json.dumps(dict_value, indent=4))
+                widget.setMinimumHeight(100)
+                form_layout.addRow(f"{k} ({v.description}; JSON format):", widget)
             elif str(v.annotation).startswith("typing.Literal"):
                 widget = QComboBox()
                 for option in get_args(v.annotation):
@@ -78,7 +84,10 @@ class SettingsWindow(QDialog):
             elif isinstance(widget, QLineEdit):
                 result[k] = widget.text()
             elif isinstance(widget, QTextEdit):
-                result[k] = widget.toPlainText()
+                try:
+                    result[k] = json.loads(widget.toPlainText())
+                except json.JSONDecodeError:
+                    result[k] = widget.toPlainText()
             elif isinstance(widget, QComboBox):
                 result[k] = widget.currentText()
             elif isinstance(widget, dict):

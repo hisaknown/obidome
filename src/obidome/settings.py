@@ -56,6 +56,8 @@ class ObidomeSettings(BaseSettings):
         description="Settings for the RAM usage sparkline plot",
     )
 
+    custom_keys: dict[str, str] = Field(default={}, description="Custom keys and their corresponding shell commands")
+
     container_stylesheet: str = Field(
         default=("font-family: 'Consolas', 'monospace';\nfont-size: 14px;\npadding: 0px;\n"),
         description="Stylesheet for the container. Can be multiline.",

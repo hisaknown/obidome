@@ -1,6 +1,7 @@
 """System values module."""
 
 import ctypes
+import subprocess
 from logging import getLogger
 
 import psutil
@@ -16,6 +17,7 @@ class LazySystemValueFetcher(dict):
         self,
         cpu_percent_plot_settings: SparklineSettings,
         ram_percent_plot_settings: SparklineSettings,
+        custom_keys: dict[str, str],
     ) -> None:
         """Initialize the LazySystemValueFetcher."""
         super().__init__()
@@ -25,6 +27,7 @@ class LazySystemValueFetcher(dict):
         self.load_settings(
             cpu_percent_plot_settings=cpu_percent_plot_settings,
             ram_percent_plot_settings=ram_percent_plot_settings,
+            custom_keys=custom_keys,
         )
 
         self.is_admin = ctypes.windll.shell32.IsUserAnAdmin()
@@ -34,7 +37,10 @@ class LazySystemValueFetcher(dict):
             )
 
     def load_settings(
-        self, cpu_percent_plot_settings: SparklineSettings, ram_percent_plot_settings: SparklineSettings
+        self,
+        cpu_percent_plot_settings: SparklineSettings,
+        ram_percent_plot_settings: SparklineSettings,
+        custom_keys: dict[str, str],
     ) -> None:
         """Load settings for the value fetcher."""
         self._cpu_percent_plot_settings = cpu_percent_plot_settings
@@ -43,17 +49,24 @@ class LazySystemValueFetcher(dict):
         self._ram_percent_plot_settings = ram_percent_plot_settings
         if hasattr(self, "_ram_percent_plotter"):
             del self._ram_percent_plotter
+
+        self._custom_keys = custom_keys
         self.logger.info("System value fetcher settings loaded.")
 
     def __getitem__(self, key: str) -> float | int | str:
         """Fetch the system value for the given key."""
         value = getattr(self, key, None)
 
-        if not value:
-            self.logger.warning("Requested unknown system value: %s", key)
-            return "N/A"
+        if value:
+            return value
 
-        return value
+        if key in self._custom_keys:
+            return subprocess.run(  # noqa: S602, PLW1510 (security of the command is user's responsibility)
+                self._custom_keys[key], capture_output=True, text=True, shell=True
+            ).stdout.strip()
+
+        self.logger.warning("Requested unknown system value: %s", key)
+        return "N/A"
 
     def clear_cache(self) -> None:
         """Clear the cached system values."""
