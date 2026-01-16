@@ -1,5 +1,9 @@
 # Obidome
 
+<div style="text-align: center;">
+    <img src="https://github.com/hisaknown/obidome/raw/refs/heads/main/src/obidome/res/icon.svg" width="128" height="128" alt="Obidome Icon">
+  </div>
+
 > **A highly customizable system monitor that lives in your Windows 11 taskbar.**
 
 ![Python Version](https://img.shields.io/badge/python-3.13%2B-blue?style=flat-square&logo=python)
@@ -14,6 +18,8 @@
 **Obidome** is a system monitor designed specifically for Windows 11. Unlike bulky desktop widgets, Obidome integrates directly into the `Shell_TrayWnd` (the taskbar), ensuring your system stats are always visible without cluttering your screen.
 
 It leverages the power of Qt (PySide6) for rendering and supports HTML-like styling, giving you complete control over how your system metrics look.
+
+![Obidome Screenshot](https://github.com/hisaknown/obidome/raw/refs/heads/main/doc/screenshot.png)
 
 ## Features
 
