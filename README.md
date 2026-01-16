@@ -1,8 +1,8 @@
 # Obidome
 
-<div style="text-align: center;">
+<p align="center">
     <img src="https://github.com/hisaknown/obidome/raw/refs/heads/main/src/obidome/res/icon.svg" width="128" height="128" alt="Obidome Icon">
-  </div>
+</p>
 
 > **A highly customizable system monitor that lives in your Windows 11 taskbar.**
 
