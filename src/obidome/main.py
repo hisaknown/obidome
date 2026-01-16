@@ -3,7 +3,9 @@
 import signal
 import sys
 from logging import basicConfig, getLogger
+from pathlib import Path
 
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from obidome.monitor import TaskbarMonitor
@@ -27,6 +29,7 @@ def main() -> None:
 
     signal.signal(signal.SIGINT, sigint_handler)
     app = QApplication()
+    app.setWindowIcon(QIcon(str(Path(__file__).parent / "res" / "icon.ico")))
     monitor = TaskbarMonitor(settings, app)
     monitor.show()
 
