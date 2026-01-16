@@ -117,6 +117,40 @@ Use these placeholders in your `info_label` HTML template. They will be replaced
 *   `{ram_total_gb}`: Total system RAM in Gigabytes (float).
 *   `{ram_total_mb}`: Total system RAM in Megabytes (float).
 
+#### Network
+*   `{network_bytes_sent}`: Total bytes sent (int).
+*   `{network_kb_sent}`: Total KB sent (float).
+*   `{network_mb_sent}`: Total MB sent (float).
+*   `{network_bytes_sent_per_sec}`: Bytes sent per second (float).
+*   `{network_kb_sent_per_sec}`: KB sent per second (float).
+*   `{network_mb_sent_per_sec}`: MB sent per second (float).
+*   `{network_bytes_recv}`: Total bytes received (int).
+*   `{network_kb_recv}`: Total KB received (float).
+*   `{network_mb_recv}`: Total MB received (float).
+*   `{network_gb_recv}`: Total GB received (float).
+*   `{network_bytes_recv_per_sec}`: Bytes received per second (float).
+*   `{network_kb_recv_per_sec}`: KB received per second (float).
+*   `{network_mb_recv_per_sec}`: MB received per second (float).
+*   `{network_gb_recv_per_sec}`: GB received per second (float).
+
+#### Disk I/O
+*   `{disk_io_read_bytes}`: Total bytes read (int).
+*   `{disk_io_read_kb}`: Total KB read (float).
+*   `{disk_io_read_mb}`: Total MB read (float).
+*   `{disk_io_read_gb}`: Total GB read (float).
+*   `{disk_io_read_bytes_per_sec}`: Bytes read per second (float).
+*   `{disk_io_read_kb_per_sec}`: KB read per second (float).
+*   `{disk_io_read_mb_per_sec}`: MB read per second (float).
+*   `{disk_io_read_gb_per_sec}`: GB read per second (float).
+*   `{disk_io_write_bytes}`: Total bytes written (int).
+*   `{disk_io_write_kb}`: Total KB written (float).
+*   `{disk_io_write_mb}`: Total MB written (float).
+*   `{disk_io_write_gb}`: Total GB written (float).
+*   `{disk_io_write_bytes_per_sec}`: Bytes written per second (float).
+*   `{disk_io_write_kb_per_sec}`: KB written per second (float).
+*   `{disk_io_write_mb_per_sec}`: MB written per second (float).
+*   `{disk_io_write_gb_per_sec}`: GB written per second (float).
+
 #### Custom
 *   `{custom_key_name}`: The output of the shell command defined in `custom_keys`.
 

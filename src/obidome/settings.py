@@ -80,7 +80,7 @@ class ObidomeSettings(BaseSettings):
         description="HTML template for the info label. Can be multiline.",
     )
 
-    model_config = SettingsConfigDict(yaml_file=CONFIG_PATH)
+    model_config = SettingsConfigDict(yaml_file=CONFIG_PATH, yaml_file_encoding="utf-8")
 
     @classmethod
     def settings_customise_sources(
