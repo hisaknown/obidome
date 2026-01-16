@@ -11,7 +11,7 @@
 
 ## Overview
 
-**Obidome** is a sleek, lightweight system monitor designed specifically for Windows 11. Unlike bulky desktop widgets, Obidome integrates directly into the `Shell_TrayWnd` (the taskbar), ensuring your system stats are always visible without cluttering your screen.
+**Obidome** is a system monitor designed specifically for Windows 11. Unlike bulky desktop widgets, Obidome integrates directly into the `Shell_TrayWnd` (the taskbar), ensuring your system stats are always visible without cluttering your screen.
 
 It leverages the power of Qt (PySide6) for rendering and supports HTML-like styling, giving you complete control over how your system metrics look.
 
@@ -140,6 +140,6 @@ uv run ruff format .
 uv run pyright src
 ```
 
-## License
-
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+## See also
+* [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor)
+    * Obidome is heavily inspired by TrafficMonitor, a popular system monitor on taskbar.
