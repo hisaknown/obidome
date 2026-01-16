@@ -2,12 +2,21 @@
 
 from typing import Literal
 
+import yaml
 from platformdirs import user_config_path
 from pydantic import Field
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict, YamlConfigSettingsSource
-from yaml import safe_dump
 
 CONFIG_PATH = user_config_path("obidome") / "settings.yaml"
+
+
+def str_presenter(dumper: yaml.Dumper, data: str) -> yaml.nodes.ScalarNode:
+    """Set YAML string representation to literal style for multiline strings."""
+    if "\n" in data:
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+yaml.add_representer(str, str_presenter)
 
 
 class SparklineSettings(BaseSettings):
@@ -51,8 +60,7 @@ class ObidomeSettings(BaseSettings):
         description="Stylesheet for the container. Can be multiline.",
     )
     info_label: str = Field(
-        default="""
-<table width="100%" cellspacing="0" cellpadding="0">
+        default="""<table width="100%" cellspacing="0" cellpadding="0">
     <tr style="background-image: url({cpu_percent_plot}); background-size: contain;">
         <td align="right" style="color: #aaaaaa; padding-right: 4px;">CPU:</td>
         <td align="left" style="color: #ffffff; white-space: pre;">{cpu_percent:4.1f}<span style="font-size:9px">%</span></td>
@@ -89,4 +97,4 @@ class ObidomeSettings(BaseSettings):
         settings = self.model_dump()
         CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
         with CONFIG_PATH.open("w", encoding="utf-8") as f:
-            safe_dump(settings, f)
+            yaml.dump(settings, f, default_flow_style=False, allow_unicode=True)
