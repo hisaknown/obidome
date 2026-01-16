@@ -30,6 +30,7 @@ def build_with_nuitka(session: nox.Session) -> None:
         "run",
         "--active",
         "nuitka",
+        "--assume-yes-for-downloads",
         "--enable-plugin=pyside6",
         "--standalone",
         "--onefile",
