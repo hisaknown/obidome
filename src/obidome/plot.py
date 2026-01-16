@@ -17,8 +17,8 @@ class SparklineGenerator:
         width: int = 50,
         height: int = 30,
         max_len: int = 30,
-        min_val: float = 0,
-        max_val: float = 100,
+        min_val: float | None = None,
+        max_val: float | None = None,
     ) -> None:
         """Initialize the SparklineGenerator.
 
@@ -27,8 +27,8 @@ class SparklineGenerator:
             width (int): Width of the sparkline image in pixels.
             height (int): Height of the sparkline image in pixels.
             max_len (int): Maximum number of data points to keep in history.
-            min_val (float): Minimum value for normalization.
-            max_val (float): Maximum value for normalization.
+            min_val (float | None): Minimum value for normalization. If None, auto-calculated.
+            max_val (float | None): Maximum value for normalization. If None, auto-calculated.
 
         """
         self.line_color = settings.line_color
@@ -38,7 +38,9 @@ class SparklineGenerator:
         self.width = width
         self.height = height
         self.min_val = min_val
+        self.auto_min_val = min_val is None
         self.max_val = max_val
+        self.auto_max_val = max_val is None
 
         # Ring buffer to hold historical values
         self.history = deque([0.0] * max_len, maxlen=max_len)
@@ -49,9 +51,18 @@ class SparklineGenerator:
         self._buffer = QBuffer(self._byte_array)
         self._painter = QPainter()
 
-    def update_and_get_b64(self, new_value: float) -> str:
+    def update_and_get_b64(self, new_value: float) -> str:  # noqa: PLR0915 TODO (hisaknown): Reduce complexity
         """Update the sparkline with a new value and return the image as a Base64-encoded DataURI string."""
         self.history.append(new_value)
+
+        if self.auto_min_val:
+            self.min_val = min([*self.history, self.min_val] if self.min_val is not None else self.history)
+        if self.auto_max_val:
+            self.max_val = max([*self.history, self.max_val] if self.max_val is not None else self.history)
+        if self.min_val is None or self.max_val is None:
+            # NOTE: This should never happen due to the checks above
+            msg = "min_val and max_val cannot be None when auto_min_val or auto_max_val is enabled."
+            raise ValueError(msg)
 
         # Clear the canvas (fully transparent)
         self._image.fill(QColor(0, 0, 0, 0))

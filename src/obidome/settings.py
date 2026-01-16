@@ -64,7 +64,7 @@ class ObidomeSettings(BaseSettings):
     )
     info_label: str = Field(
         default="""<table width="100%" cellspacing="0" cellpadding="0">
-    <tr style="background-image: url({cpu_percent_plot}); background-size: contain;">
+    <tr>
         <td align="right" style="color: #aaaaaa; padding-right: 4px;">CPU:</td>
         <td align="left" style="color: #ffffff; white-space: pre;">{cpu_percent:4.1f}<span style="font-size:9px">%</span></td>
         <td><img src="{cpu_percent_plot}" width="25" height="15"></td>

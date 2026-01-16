@@ -83,7 +83,7 @@ class LazySystemValueFetcher(dict):
     def cpu_percent_plot(self) -> str:
         """Get a sparkline plot of the current CPU usage percentage."""
         if not hasattr(self, "_cpu_percent_plotter"):
-            self._cpu_percent_plotter = SparklineGenerator(self._cpu_percent_plot_settings)
+            self._cpu_percent_plotter = SparklineGenerator(self._cpu_percent_plot_settings, min_val=0, max_val=100)
         return self._cpu_percent_plotter.update_and_get_b64(self.cpu_percent)
 
     @property
@@ -97,7 +97,7 @@ class LazySystemValueFetcher(dict):
     def ram_percent_plot(self) -> str:
         """Get a sparkline plot of the current RAM usage percentage."""
         if not hasattr(self, "_ram_percent_plotter"):
-            self._ram_percent_plotter = SparklineGenerator(self._ram_percent_plot_settings)
+            self._ram_percent_plotter = SparklineGenerator(self._ram_percent_plot_settings, min_val=0, max_val=100)
         return self._ram_percent_plotter.update_and_get_b64(self.ram_percent)
 
     @property
