@@ -1,5 +1,7 @@
 """Nox configuration file."""
 
+from importlib.metadata import version
+
 import nox
 
 
@@ -24,7 +26,7 @@ def typecheck(session: nox.Session) -> None:
 @nox.session(venv_backend="uv", python="3.13", tags=["build"])
 def build_with_nuitka(session: nox.Session) -> None:
     """Build the application using Nuitka."""
-    session.install("-e", ".", "--group", "dev")
+    session.install("-e", ".", "--group", "build")
     session.run(
         "uv",
         "run",
@@ -35,6 +37,9 @@ def build_with_nuitka(session: nox.Session) -> None:
         "--standalone",
         "--onefile",
         "--follow-imports",
+        "--windows-product-name=Obidome",
+        "--windows-file-description=A system monitor that stays on the taskbar.",
+        f"--windows-product-version={version('obidome')}",
         "--windows-icon-from-ico=src/obidome/res/icon.ico",
         "--windows-disable-console",
         "--include-data-dir=src/obidome/res=res",

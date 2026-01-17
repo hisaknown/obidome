@@ -128,7 +128,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/d8/fb/51df3b30b0f9b3e73
 
 [[package]]
 name = "obidome"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "platformdirs" },
@@ -139,6 +139,9 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+build = [
+    { name = "nuitka" },
+]
 dev = [
     { name = "nox" },
     { name = "nuitka" },
@@ -156,6 +159,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+build = [{ name = "nuitka", specifier = ">=2.8.9" }]
 dev = [
     { name = "nox", specifier = ">=2025.11.12" },
     { name = "nuitka", specifier = ">=2.8.9" },
