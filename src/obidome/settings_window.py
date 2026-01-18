@@ -3,7 +3,7 @@
 import json
 from typing import TypeVar, get_args
 
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from obidome.settings import ObidomeSettings
+from obidome.settings import ObidomeSettings, SparklineSettings
 
 T = TypeVar("T")
 
@@ -31,7 +31,7 @@ class SettingsWindow(QDialog):
         self._current_settings = ObidomeSettings()
         self.init_ui()
 
-    def generate_widgets[T: BaseModel](
+    def generate_widgets[T: BaseModel](  # noqa: C901 # TODO (hisaknown): Reduce complexity
         self, form_layout: QFormLayout, model: type[T], current: T
     ) -> dict[str, QWidget | dict]:
         """Recursively generate widgets for the model fields."""
@@ -57,6 +57,13 @@ class SettingsWindow(QDialog):
                 widget = QTextEdit()
                 dict_value = getattr(current, k)
                 widget.setPlainText(json.dumps(dict_value, indent=4))
+                widget.setMinimumHeight(100)
+                form_layout.addRow(f"{k} ({v.description}; JSON format):", widget)
+            elif str(v.annotation) == "dict[str, obidome.settings.SparklineSettings]":
+                widget = QTextEdit()
+                dict_value = getattr(current, k)
+                ta = TypeAdapter(dict[str, SparklineSettings])
+                widget.setPlainText(ta.dump_json(dict_value, indent=4).decode("utf-8"))
                 widget.setMinimumHeight(100)
                 form_layout.addRow(f"{k} ({v.description}; JSON format):", widget)
             elif str(v.annotation).startswith("typing.Literal"):

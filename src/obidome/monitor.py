@@ -96,8 +96,7 @@ class TaskbarMonitor(QWidget):
         self._should_stay = False
 
         self._value_fetcher = LazySystemValueFetcher(
-            cpu_percent_plot_settings=settings.cpu_percent_plot_settings,
-            ram_percent_plot_settings=settings.ram_percent_plot_settings,
+            sparkline_settings=settings.sparkline_settings,
             custom_keys=settings.custom_keys,
         )
 
@@ -171,8 +170,7 @@ class TaskbarMonitor(QWidget):
 
         if hasattr(self, "_value_fetcher"):
             self._value_fetcher.load_settings(
-                cpu_percent_plot_settings=settings.cpu_percent_plot_settings,
-                ram_percent_plot_settings=settings.ram_percent_plot_settings,
+                sparkline_settings=settings.sparkline_settings,
                 custom_keys=settings.custom_keys,
             )
 

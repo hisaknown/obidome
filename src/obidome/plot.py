@@ -11,42 +11,32 @@ from obidome.settings import SparklineSettings
 class SparklineGenerator:
     """Generates sparkline graphs as DataURI scheme strings."""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         settings: SparklineSettings,
-        width: int = 50,
-        height: int = 30,
-        max_len: int = 30,
-        min_val: float | None = None,
-        max_val: float | None = None,
     ) -> None:
         """Initialize the SparklineGenerator.
 
         Args:
             settings (SparklineSettings): Settings for the sparkline plot.
-            width (int): Width of the sparkline image in pixels.
-            height (int): Height of the sparkline image in pixels.
-            max_len (int): Maximum number of data points to keep in history.
-            min_val (float | None): Minimum value for normalization. If None, auto-calculated.
-            max_val (float | None): Maximum value for normalization. If None, auto-calculated.
 
         """
         self.line_color = settings.line_color
         self.fill_style = settings.fill_style
         self.fill_color = settings.fill_color
 
-        self.width = width
-        self.height = height
-        self.min_val = min_val
-        self.auto_min_val = min_val is None
-        self.max_val = max_val
-        self.auto_max_val = max_val is None
+        self.width = settings.width
+        self.height = settings.height
+        self.min_val = settings.min_value
+        self.auto_min_val = settings.min_value is None
+        self.max_val = settings.max_value
+        self.auto_max_val = settings.max_value is None
 
         # Ring buffer to hold historical values
-        self.history = deque([0.0] * max_len, maxlen=max_len)
+        self.history = deque([0.0] * settings.max_length, maxlen=settings.max_length)
 
         # Reusable QImage and QPainter objects
-        self._image = QImage(width, height, QImage.Format.Format_ARGB32_Premultiplied)
+        self._image = QImage(settings.width, settings.height, QImage.Format.Format_ARGB32_Premultiplied)
         self._byte_array = QByteArray()
         self._buffer = QBuffer(self._byte_array)
         self._painter = QPainter()

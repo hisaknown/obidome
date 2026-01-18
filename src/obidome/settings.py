@@ -23,6 +23,16 @@ yaml.add_representer(str, str_presenter)
 class SparklineSettings(BaseSettings):
     """Settings for sparkline plots."""
 
+    width: int = Field(default=50, description="Width of the sparkline image in pixels")
+    height: int = Field(default=30, description="Height of the sparkline image in pixels")
+    max_length: int = Field(default=30, description="Maximum number of data points to keep in history")
+    max_value: float | None = Field(
+        default=None, description="Maximum value for normalization. If None, auto-calculated."
+    )
+    min_value: float | None = Field(
+        default=None, description="Minimum value for normalization. If None, auto-calculated."
+    )
+
     line_color: str = Field(default="#00ff00", description="Color of the sparkline line")
     fill_style: Literal["solid", "gradient", "none"] = Field(
         default="gradient", description="Fill style of the sparkline"
@@ -38,22 +48,12 @@ class ObidomeSettings(BaseSettings):
     refresh_interval_msec: int = Field(default=1000, description="Refresh interval in milliseconds")
     margin_right: int = Field(default=10, description="Right margin from the tray area in pixels")
 
-    cpu_percent_plot_settings: SparklineSettings = Field(
-        default=SparklineSettings(
-            line_color="#00ff00",
-            fill_style="gradient",
-            fill_color="#00ff00",
-        ),
-        description="Settings for the CPU usage sparkline plot",
-    )
-
-    ram_percent_plot_settings: SparklineSettings = Field(
-        default=SparklineSettings(
-            line_color="#4499ff",
-            fill_style="gradient",
-            fill_color="#4499ff",
-        ),
-        description="Settings for the RAM usage sparkline plot",
+    sparkline_settings: dict[str, SparklineSettings] = Field(
+        default={
+            "cpu_percent": SparklineSettings(min_value=0.0, max_value=100.0, line_color="#00ff00"),
+            "ram_percent": SparklineSettings(min_value=0.0, max_value=100.0, line_color="#4499ff"),
+        },
+        description="Settings for sparkline plots. Dictionary mapping metric keys to their settings.",
     )
 
     custom_keys: dict[str, str] = Field(default={}, description="Custom keys and their corresponding shell commands")
@@ -67,12 +67,12 @@ class ObidomeSettings(BaseSettings):
     <tr>
         <td align="right" style="color: #aaaaaa; padding-right: 4px;">CPU:</td>
         <td align="left" style="color: #ffffff; white-space: pre;">{cpu_percent:4.1f}<span style="font-size:9px">%</span></td>
-        <td><img src="{cpu_percent_plot}" width="25" height="15"></td>
+        <td><img src="{cpu_percent_sparkline}" width="25" height="15"></td>
     </tr>
     <tr>
         <td align="right" style="color: #aaaaaa; padding-right: 4px;">RAM:</td>
         <td align="left" style="color: #ffffff; white-space: pre;">{ram_percent:4.1f}<span style="font-size:9px">%</span></td>
-        <td><img src="{ram_percent_plot}" width="25" height="15"></td>
+        <td><img src="{ram_percent_sparkline}" width="25" height="15"></td>
         <td align="left"></td>
     </tr>
 </table>
@@ -100,4 +100,4 @@ class ObidomeSettings(BaseSettings):
         settings = self.model_dump()
         CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
         with CONFIG_PATH.open("w", encoding="utf-8") as f:
-            yaml.dump(settings, f, default_flow_style=False, allow_unicode=True)
+            yaml.dump(settings, f, default_flow_style=False, allow_unicode=True, sort_keys=False)

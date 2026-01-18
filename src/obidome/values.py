@@ -17,8 +17,7 @@ class LazySystemValueFetcher(dict):
 
     def __init__(
         self,
-        cpu_percent_plot_settings: SparklineSettings,
-        ram_percent_plot_settings: SparklineSettings,
+        sparkline_settings: dict[str, SparklineSettings],
         custom_keys: dict[str, str],
     ) -> None:
         """Initialize the LazySystemValueFetcher."""
@@ -27,8 +26,7 @@ class LazySystemValueFetcher(dict):
         self._cache = {}
 
         self.load_settings(
-            cpu_percent_plot_settings=cpu_percent_plot_settings,
-            ram_percent_plot_settings=ram_percent_plot_settings,
+            sparkline_settings=sparkline_settings,
             custom_keys=custom_keys,
         )
 
@@ -40,17 +38,14 @@ class LazySystemValueFetcher(dict):
 
     def load_settings(
         self,
-        cpu_percent_plot_settings: SparklineSettings,
-        ram_percent_plot_settings: SparklineSettings,
+        sparkline_settings: dict[str, SparklineSettings],
         custom_keys: dict[str, str],
     ) -> None:
         """Load settings for the value fetcher."""
-        self._cpu_percent_plot_settings = cpu_percent_plot_settings
-        if hasattr(self, "_cpu_percent_plotter"):
-            del self._cpu_percent_plotter
-        self._ram_percent_plot_settings = ram_percent_plot_settings
-        if hasattr(self, "_ram_percent_plotter"):
-            del self._ram_percent_plotter
+        for k, v in sparkline_settings.items():
+            setattr(self, f"_{k}_sparkline_settings", v)
+            if hasattr(self, f"_{k}_sparkline_plotter"):
+                delattr(self, f"_{k}_sparkline_plotter")
 
         self._custom_keys = custom_keys
         self.logger.info("System value fetcher settings loaded.")
@@ -60,6 +55,26 @@ class LazySystemValueFetcher(dict):
         # Built-in attributes
         value = getattr(self, key, None)
         if value is not None:
+            return value
+
+        # Sparkline plotter
+        if key.endswith("_sparkline"):
+            base_key = key[: -len("_sparkline")]
+            if hasattr(self, f"_{base_key}_sparkline_plotter"):
+                # Existing plotter
+                plotter = getattr(self, f"_{base_key}_sparkline_plotter")
+            else:
+                # New plotter
+                sparkline_settings = getattr(self, f"_{base_key}_sparkline_settings", None)
+                if sparkline_settings is None:
+                    self.logger.warning("Requested unknown sparkline plot: %s", key)
+                    return "N/A"
+                plotter = SparklineGenerator(sparkline_settings)
+                setattr(self, f"_{base_key}_sparkline_plotter", plotter)
+            # Generate sparkline, get value using __getitem__ to support custom keys
+            # NOTE: We assume the base value is numeric, or can be converted to float
+            value = plotter.update_and_get_b64(float(self[base_key]))
+            self.put_to_cache(key, value)
             return value
 
         # Custom command
@@ -108,26 +123,12 @@ class LazySystemValueFetcher(dict):
         """Get the current CPU usage percentage."""
         return psutil.cpu_percent(interval=None)
 
-    @property_with_cache
-    def cpu_percent_plot(self) -> str:
-        """Get a sparkline plot of the current CPU usage percentage."""
-        if not hasattr(self, "_cpu_percent_plotter"):
-            self._cpu_percent_plotter = SparklineGenerator(self._cpu_percent_plot_settings, min_val=0, max_val=100)
-        return self._cpu_percent_plotter.update_and_get_b64(self.cpu_percent)
-
     # --- RAM ---
 
     @property_with_cache
     def ram_percent(self) -> float:
         """Get the current RAM usage percentage."""
         return psutil.virtual_memory().percent
-
-    @property_with_cache
-    def ram_percent_plot(self) -> str:
-        """Get a sparkline plot of the current RAM usage percentage."""
-        if not hasattr(self, "_ram_percent_plotter"):
-            self._ram_percent_plotter = SparklineGenerator(self._ram_percent_plot_settings, min_val=0, max_val=100)
-        return self._ram_percent_plotter.update_and_get_b64(self.ram_percent)
 
     @property_with_cache
     def ram_total(self) -> int:
