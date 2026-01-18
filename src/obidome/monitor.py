@@ -1,6 +1,7 @@
 """System monitor module."""
 
 import ctypes
+import logging
 from ctypes import wintypes
 from logging import getLogger
 from typing import ClassVar
@@ -9,6 +10,7 @@ from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QAction, QContextMenuEvent, QDesktopServices
 from PySide6.QtWidgets import QApplication, QLabel, QMenu, QSystemTrayIcon, QVBoxLayout, QWidget
 
+from obidome.log_window import LogWindow
 from obidome.settings import CONFIG_PATH, ObidomeSettings
 from obidome.settings_window import SettingsWindow
 from obidome.values import LazySystemValueFetcher
@@ -82,6 +84,9 @@ class TaskbarMonitor(QWidget):
         self.logger = getLogger(__name__)
         self._app = app
 
+        self._log_window = LogWindow(None)
+        self._setup_logging()
+
         self._context_menu = self.make_context_menu()
 
         self._tray_icon = QSystemTrayIcon()
@@ -104,6 +109,13 @@ class TaskbarMonitor(QWidget):
 
         self.init_ui()
         QTimer.singleShot(100, self.start_monitor)
+
+    def _setup_logging(self) -> None:
+        """Set up logging to the log window."""
+        handler = self._log_window.get_handler()
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        handler.setFormatter(formatter)
+        logging.getLogger().addHandler(handler)
 
     def init_ui(self) -> None:
         """Initialize the UI components."""
@@ -147,13 +159,23 @@ class TaskbarMonitor(QWidget):
             return
 
         self._value_fetcher.clear_cache()
-        html_content = f"""
-        <div style="
-            {self._container_stylesheet}
-        ">
-            {self._info_label_template.format_map(self._value_fetcher)}
-        </div>
-        """
+        try:
+            html_content = f"""
+            <div style="
+                {self._container_stylesheet}
+            ">
+                {self._info_label_template.format_map(self._value_fetcher)}
+            </div>
+            """
+        except ValueError as e:
+            if "Unknown format code" in str(e):
+                msg = (
+                    "Format(s) of one or more keys in the info label template are invalid. "
+                    "Probably a non-numeric value is being formatted as a number.\n"
+                    "See: https://docs.python.org/3/library/string.html#format-string-syntax for details."
+                )
+                self.logger.exception(msg)
+                raise
 
         self._info_label.setText(html_content)
 
@@ -191,6 +213,10 @@ class TaskbarMonitor(QWidget):
         settings_action.triggered.connect(self.open_settings)
         menu.addAction(settings_action)
 
+        logs_action = QAction("Show Logs", self)
+        logs_action.triggered.connect(self.open_logs)
+        menu.addAction(logs_action)
+
         reload_action = QAction("Reload Settings", self)
         reload_action.triggered.connect(lambda: self.load_settings(ObidomeSettings()))
         menu.addAction(reload_action)
@@ -206,6 +232,14 @@ class TaskbarMonitor(QWidget):
         menu.addAction(quit_action)
 
         return menu
+
+    def open_logs(self) -> None:
+        """Open the logs window."""
+        self._should_stay = True
+        self._log_window.show()
+        self._log_window.raise_()
+        self._log_window.activateWindow()
+        self._should_stay = False
 
     def open_settings(self) -> None:
         """Open the settings window."""

@@ -29,6 +29,7 @@ def main() -> None:
 
     signal.signal(signal.SIGINT, sigint_handler)
     app = QApplication()
+    app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(QIcon(str(Path(__file__).parent / "res" / "icon.ico")))
     monitor = TaskbarMonitor(settings, app)
     monitor.show()
