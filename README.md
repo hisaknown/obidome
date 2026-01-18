@@ -65,37 +65,47 @@ Obidome is configured via a YAML file. You can access the settings via the GUI o
 ### Example Configuration
 
 ```yaml
-refresh_interval_msec: 1000
-margin_right: 10
-container_stylesheet: |
+refresh_interval_msec: 1000  # Refresh every 1 second
+margin_right: 10  # Margin from the right edge of the taskbar
+sparkline_settings:  # Settings for sparkline plots
+  cpu_percent:
+    width: 50  # Width of the sparkline image (can be scaled in HTML)
+    height: 30  # Height of the sparkline image (can be scaled in HTML)
+    max_length: 30  # Number of data points to keep
+    max_value: 100.0  # Maximum value for scaling (can be null for auto)
+    min_value: 0.0  # Minimum value for scaling (can be null for auto)
+    line_color: '#00ff00'  # Color of the sparkline line
+    fill_style: gradient  # Fill style: 'solid', 'gradient', or 'none'
+    fill_color: '#00ff00'  # Fill color (used if fill_style is 'solid' or 'gradient')
+  ram_percent:
+    width: 50
+    height: 30
+    max_length: 30
+    max_value: 100.0
+    min_value: 0.0
+    line_color: '#4499ff'
+    fill_style: gradient
+    fill_color: '#4499ff'
+
+custom_keys:  # Custom shell commands to display their output (key_name: command)
+  gpu_temp: "nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader"
+
+container_stylesheet: |  # CSS styles for the whole content
   font-family: 'Consolas', 'monospace';
   font-size: 14px;
   padding: 0px;
-
-cpu_percent_plot_settings:
-  line_color: "#00ff00"
-  fill_style: gradient
-  fill_color: "#00ff00"
-
-ram_percent_plot_settings:
-  line_color: "#4499ff"
-  fill_style: gradient
-  fill_color: "#4499ff"
-
-custom_keys:
-  gpu_temp: "nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader"
-
-info_label: |
+ 
+info_label: |  # HTML template for the info label
   <table width="100%" cellspacing="0" cellpadding="0">
       <tr>
           <td align="right" style="color: #aaaaaa; padding-right: 4px;">CPU:</td>
           <td align="left" style="color: #ffffff;">{cpu_percent:4.1f}%</td>
-          <td><img src="{cpu_percent_plot}" width="25" height="15"></td>
+          <td><img src="{cpu_percent_sparkline}" width="25" height="15"></td>
       </tr>
       <tr>
           <td align="right" style="color: #aaaaaa; padding-right: 4px;">RAM:</td>
           <td align="left" style="color: #ffffff;">{ram_percent:4.1f}%</td>
-          <td><img src="{ram_percent_plot}" width="25" height="15"></td>
+          <td><img src="{ram_percent_sparkline}" width="25" height="15"></td>
       </tr>
       <tr>
           <td align="right" style="color: #aaaaaa; padding-right: 4px;">GPU:</td>
@@ -110,55 +120,57 @@ info_label: |
 Use these placeholders in your `info_label` HTML template. They will be replaced with real-time values.
 
 #### CPU
-*   `{cpu_percent}`: Current CPU usage percentage (float).
-*   `{cpu_percent_plot}`: Base64-encoded sparkline image source (string).
-*   `{cpu_demanding_process}`: Name of the process using the most CPU (requires Admin).
-*   `{cpu_demanding_process_cpu_percent}`: CPU usage of the most demanding process (requires Admin).
+* `{cpu_percent}`: Current CPU usage percentage (float).
+* `{cpu_demanding_process}`: Name of the process using the most CPU (requires Admin).
+* `{cpu_demanding_process_cpu_percent}`: CPU usage of the most demanding process (requires Admin).
 
 #### RAM
-*   `{ram_percent}`: Current RAM usage percentage (float).
-*   `{ram_percent_plot}`: Base64-encoded sparkline image source (string).
-*   `{ram_used_gb}`: Used RAM in Gigabytes (float).
-*   `{ram_used_mb}`: Used RAM in Megabytes (float).
-*   `{ram_total_gb}`: Total system RAM in Gigabytes (float).
-*   `{ram_total_mb}`: Total system RAM in Megabytes (float).
+* `{ram_percent}`: Current RAM usage percentage (float).
+* `{ram_used_gb}`: Used RAM in Gigabytes (float).
+* `{ram_used_mb}`: Used RAM in Megabytes (float).
+* `{ram_total_gb}`: Total system RAM in Gigabytes (float).
+* `{ram_total_mb}`: Total system RAM in Megabytes (float).
 
 #### Network
-*   `{network_bytes_sent}`: Total bytes sent (int).
-*   `{network_kb_sent}`: Total KB sent (float).
-*   `{network_mb_sent}`: Total MB sent (float).
-*   `{network_bytes_sent_per_sec}`: Bytes sent per second (float).
-*   `{network_kb_sent_per_sec}`: KB sent per second (float).
-*   `{network_mb_sent_per_sec}`: MB sent per second (float).
-*   `{network_bytes_recv}`: Total bytes received (int).
-*   `{network_kb_recv}`: Total KB received (float).
-*   `{network_mb_recv}`: Total MB received (float).
-*   `{network_gb_recv}`: Total GB received (float).
-*   `{network_bytes_recv_per_sec}`: Bytes received per second (float).
-*   `{network_kb_recv_per_sec}`: KB received per second (float).
-*   `{network_mb_recv_per_sec}`: MB received per second (float).
-*   `{network_gb_recv_per_sec}`: GB received per second (float).
+* `{network_bytes_sent}`: Total bytes sent (int).
+* `{network_kb_sent}`: Total KB sent (float).
+* `{network_mb_sent}`: Total MB sent (float).
+* `{network_bytes_sent_per_sec}`: Bytes sent per second (float).
+* `{network_kb_sent_per_sec}`: KB sent per second (float).
+* `{network_mb_sent_per_sec}`: MB sent per second (float).
+* `{network_bytes_recv}`: Total bytes received (int).
+* `{network_kb_recv}`: Total KB received (float).
+* `{network_mb_recv}`: Total MB received (float).
+* `{network_gb_recv}`: Total GB received (float).
+* `{network_bytes_recv_per_sec}`: Bytes received per second (float).
+* `{network_kb_recv_per_sec}`: KB received per second (float).
+* `{network_mb_recv_per_sec}`: MB received per second (float).
+* `{network_gb_recv_per_sec}`: GB received per second (float).
 
 #### Disk I/O
-*   `{disk_io_read_bytes}`: Total bytes read (int).
-*   `{disk_io_read_kb}`: Total KB read (float).
-*   `{disk_io_read_mb}`: Total MB read (float).
-*   `{disk_io_read_gb}`: Total GB read (float).
-*   `{disk_io_read_bytes_per_sec}`: Bytes read per second (float).
-*   `{disk_io_read_kb_per_sec}`: KB read per second (float).
-*   `{disk_io_read_mb_per_sec}`: MB read per second (float).
-*   `{disk_io_read_gb_per_sec}`: GB read per second (float).
-*   `{disk_io_write_bytes}`: Total bytes written (int).
-*   `{disk_io_write_kb}`: Total KB written (float).
-*   `{disk_io_write_mb}`: Total MB written (float).
-*   `{disk_io_write_gb}`: Total GB written (float).
-*   `{disk_io_write_bytes_per_sec}`: Bytes written per second (float).
-*   `{disk_io_write_kb_per_sec}`: KB written per second (float).
-*   `{disk_io_write_mb_per_sec}`: MB written per second (float).
-*   `{disk_io_write_gb_per_sec}`: GB written per second (float).
+* `{disk_io_read_bytes}`: Total bytes read (int).
+* `{disk_io_read_kb}`: Total KB read (float).
+* `{disk_io_read_mb}`: Total MB read (float).
+* `{disk_io_read_gb}`: Total GB read (float).
+* `{disk_io_read_bytes_per_sec}`: Bytes read per second (float).
+* `{disk_io_read_kb_per_sec}`: KB read per second (float).
+* `{disk_io_read_mb_per_sec}`: MB read per second (float).
+* `{disk_io_read_gb_per_sec}`: GB read per second (float).
+* `{disk_io_write_bytes}`: Total bytes written (int).
+* `{disk_io_write_kb}`: Total KB written (float).
+* `{disk_io_write_mb}`: Total MB written (float).
+* `{disk_io_write_gb}`: Total GB written (float).
+* `{disk_io_write_bytes_per_sec}`: Bytes written per second (float).
+* `{disk_io_write_kb_per_sec}`: KB written per second (float).
+* `{disk_io_write_mb_per_sec}`: MB written per second (float).
+* `{disk_io_write_gb_per_sec}`: GB written per second (float).
+
+#### Plotting
+*`{<ANY_NUMERIC_KEY>_sparkline}`: Base64-encoded sparkline image for the specified key. Replace `<ANY_NUMERIC_KEY>` with any numeric metric key like `cpu_percent` (-> `cpu_percent_sparkline`), `ram_percent` (-> `ram_percent_sparkline`), etc.
+    * Styles like line colors should be configured in `settings.yaml`.
 
 #### Custom
-*   `{custom_key_name}`: The output of the shell command defined in `custom_keys`.
+* `{custom_key_name}`: The output of the shell command defined in `custom_keys`.
 
 ## Development
 
