@@ -57,14 +57,20 @@ class LazySystemValueFetcher(dict):
 
     def __getitem__(self, key: str) -> float | int | str:
         """Fetch an attribute value by its key. If not found, try to execute a custom command."""
+        # Built-in attributes
         value = getattr(self, key, None)
         if value is not None:
             return value
 
+        # Custom command
+        if (value := self.load_from_cache(key)) is not None:
+            return value
         if key in self._custom_keys:
-            return subprocess.run(  # noqa: S602, PLW1510 (security of the command is user's responsibility)
+            value = subprocess.run(  # noqa: S602, PLW1510 (security of the command is user's responsibility)
                 self._custom_keys[key], capture_output=True, text=True, shell=True
             ).stdout.strip()
+            self.put_to_cache(key, value)
+            return value
 
         self.logger.warning("Requested unknown system value: %s", key)
         return "N/A"
@@ -72,6 +78,7 @@ class LazySystemValueFetcher(dict):
     @staticmethod
     def property_with_cache(func: Callable) -> property:
         """Decorate a property to use caching for the given key."""
+
         def wrapper(self: "LazySystemValueFetcher") -> object:
             key = func.__name__
             if (v := self.load_from_cache(key)) is not None:
@@ -79,9 +86,10 @@ class LazySystemValueFetcher(dict):
             value = func(self)
             self.put_to_cache(key, value)
             return value
+
         return property(wrapper)
 
-    def load_from_cache(self, key: str) -> int | float| str | None:
+    def load_from_cache(self, key: str) -> int | float | str | None:
         """Load a value from the cache if it exists."""
         return self._cache.get(key, None)
 
@@ -160,10 +168,10 @@ class LazySystemValueFetcher(dict):
             return "N/A"
 
         processes = sorted(
-                psutil.process_iter(attrs=["pid", "name", "cpu_percent"]),
-                key=lambda p: p.info["cpu_percent"],
-                reverse=True,
-            )
+            psutil.process_iter(attrs=["pid", "name", "cpu_percent"]),
+            key=lambda p: p.info["cpu_percent"],
+            reverse=True,
+        )
         return processes[0].info["name"]
 
     @property_with_cache
@@ -173,10 +181,10 @@ class LazySystemValueFetcher(dict):
             return float("nan")
 
         processes = sorted(
-                psutil.process_iter(attrs=["pid", "name", "cpu_percent"]),
-                key=lambda p: p.info["cpu_percent"],
-                reverse=True,
-            )
+            psutil.process_iter(attrs=["pid", "name", "cpu_percent"]),
+            key=lambda p: p.info["cpu_percent"],
+            reverse=True,
+        )
         return processes[0].info["cpu_percent"]
 
     # --- Network ---
