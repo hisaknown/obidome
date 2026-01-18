@@ -10,7 +10,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QTextEdit
 
 from obidome.monitor import TaskbarMonitor
-from obidome.settings import ObidomeSettings
+from obidome.settings import CONFIG_PATH, ObidomeSettings
 
 basicConfig(level="DEBUG", format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
@@ -28,6 +28,9 @@ def main() -> None:
 
     try:
         settings = ObidomeSettings()
+        if not CONFIG_PATH.exists():
+            logger.info("Configuration file not found. Creating default configuration at %s", CONFIG_PATH)
+            settings.save()
 
         signal.signal(signal.SIGINT, sigint_handler)
         app = QApplication()
