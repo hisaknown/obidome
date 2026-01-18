@@ -41,7 +41,7 @@ def build_with_nuitka(session: nox.Session) -> None:
         "--windows-file-description=A system monitor that stays on the taskbar.",
         f"--windows-product-version={version('obidome')}",
         "--windows-icon-from-ico=src/obidome/res/icon.ico",
-        "--windows-disable-console",
+        "--windows-console-mode=disable",
         "--include-data-dir=src/obidome/res=res",
         "--output-dir=.nuitka",
         "--output-filename=obidome.exe",
