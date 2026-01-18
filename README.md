@@ -120,53 +120,76 @@ info_label: |  # HTML template for the info label
 Use these placeholders in your `info_label` HTML template. They will be replaced with real-time values.
 
 #### CPU
-* `{cpu_percent}`: Current CPU usage percentage (float).
-* `{cpu_demanding_process}`: Name of the process using the most CPU (requires Admin).
-* `{cpu_demanding_process_cpu_percent}`: CPU usage of the most demanding process (requires Admin).
+| Key | Type | Description |
+|-----|------|-------------|
+|`{cpu_percent}` | float | Current CPU usage percentage. |
+|-----|------|-------------|
+|`{cpu_demanding_process}` | str | Name of the process using the most CPU (requires Admin). |
+|`{cpu_demanding_process_cpu_percent}` | float | CPU usage of the most demanding process (requires Admin). |
 
 #### RAM
-* `{ram_percent}`: Current RAM usage percentage (float).
-* `{ram_used_gb}`: Used RAM in Gigabytes (float).
-* `{ram_used_mb}`: Used RAM in Megabytes (float).
-* `{ram_total_gb}`: Total system RAM in Gigabytes (float).
-* `{ram_total_mb}`: Total system RAM in Megabytes (float).
+| Key | Type | Description |
+|-----|------|-------------|
+|`{ram_percent}` | float | Current RAM usage percentage. |
+|-----|------|-------------|
+|`{ram_used}` | int | Used RAM in Bytes. |
+|`{ram_used_mb}` | float | Used RAM in Megabytes. |
+|`{ram_used_gb}` | float | Used RAM in Gigabytes. |
+|-----|------|-------------|
+|`{ram_total}` | int | Total system RAM in Bytes. |
+|`{ram_total_mb}` | float | Total system RAM in Megabytes. |
+|`{ram_total_gb}` | float | Total system RAM in Gigabytes. |
 
 #### Network
-* `{network_bytes_sent}`: Total bytes sent (int).
-* `{network_kb_sent}`: Total KB sent (float).
-* `{network_mb_sent}`: Total MB sent (float).
-* `{network_bytes_sent_per_sec}`: Bytes sent per second (float).
-* `{network_kb_sent_per_sec}`: KB sent per second (float).
-* `{network_mb_sent_per_sec}`: MB sent per second (float).
-* `{network_bytes_recv}`: Total bytes received (int).
-* `{network_kb_recv}`: Total KB received (float).
-* `{network_mb_recv}`: Total MB received (float).
-* `{network_gb_recv}`: Total GB received (float).
-* `{network_bytes_recv_per_sec}`: Bytes received per second (float).
-* `{network_kb_recv_per_sec}`: KB received per second (float).
-* `{network_mb_recv_per_sec}`: MB received per second (float).
-* `{network_gb_recv_per_sec}`: GB received per second (float).
+| Key | Type | Description |
+|-----|------|-------------|
+|`{network_bytes_sent}` | int | Total bytes sent. |
+|`{network_kb_sent}` | float | Total KB sent. |
+|`{network_mb_sent}` | float | Total MB sent. |
+|-----|------|-------------|
+|`{network_bytes_sent_per_sec}` | float | Bytes sent per second. |
+|`{network_kb_sent_per_sec}` | float | KB sent per second. |
+|`{network_mb_sent_per_sec}` | float | MB sent per second. |
+|-----|------|-------------|
+|`{network_bytes_recv}` | int | Total bytes received. |
+|`{network_kb_recv}` | float | Total KB received. |
+|`{network_mb_recv}` | float | Total MB received. |
+|`{network_gb_recv}` | float | Total GB received. |
+|-----|------|-------------|
+|`{network_bytes_recv_per_sec}` | float | Bytes received per second. |
+|`{network_kb_recv_per_sec}` | float | KB received per second. |
+|`{network_mb_recv_per_sec}` | float | MB received per second. |
+|`{network_gb_recv_per_sec}` | float | GB received per second. |
 
 #### Disk I/O
-* `{disk_io_read_bytes}`: Total bytes read (int).
-* `{disk_io_read_kb}`: Total KB read (float).
-* `{disk_io_read_mb}`: Total MB read (float).
-* `{disk_io_read_gb}`: Total GB read (float).
-* `{disk_io_read_bytes_per_sec}`: Bytes read per second (float).
-* `{disk_io_read_kb_per_sec}`: KB read per second (float).
-* `{disk_io_read_mb_per_sec}`: MB read per second (float).
-* `{disk_io_read_gb_per_sec}`: GB read per second (float).
-* `{disk_io_write_bytes}`: Total bytes written (int).
-* `{disk_io_write_kb}`: Total KB written (float).
-* `{disk_io_write_mb}`: Total MB written (float).
-* `{disk_io_write_gb}`: Total GB written (float).
-* `{disk_io_write_bytes_per_sec}`: Bytes written per second (float).
-* `{disk_io_write_kb_per_sec}`: KB written per second (float).
-* `{disk_io_write_mb_per_sec}`: MB written per second (float).
-* `{disk_io_write_gb_per_sec}`: GB written per second (float).
+| Key | Type | Description |
+|-----|------|-------------|
+|`{disk_io_read_bytes}` | int | Total bytes read. |
+|`{disk_io_read_kb}` | float | Total KB read. |
+|`{disk_io_read_mb}` | float | Total MB read. |
+|`{disk_io_read_gb}` | float | Total GB read. |
+|-----|------|-------------|
+|`{disk_io_read_bytes_per_sec}` | float | Bytes read per second. |
+|`{disk_io_read_kb_per_sec}` | float | KB read per second. |
+|`{disk_io_read_mb_per_sec}` | float | MB read per second. |
+|`{disk_io_read_gb_per_sec}` | float | GB read per second. |
+|-----|------|-------------|
+|`{disk_io_write_bytes}` | int | Total bytes written. |
+|`{disk_io_write_kb}` | float | Total KB written. |
+|`{disk_io_write_mb}` | float | Total MB written. |
+|`{disk_io_write_gb}` | float | Total GB written. |
+|-----|------|-------------|
+|`{disk_io_write_bytes_per_sec}` | float | Bytes written per second. |
+|`{disk_io_write_kb_per_sec}` | float | KB written per second. |
+|`{disk_io_write_mb_per_sec}` | float | MB written per second. |
+|`{disk_io_write_gb_per_sec}` | float | GB written per second. |
 
 #### Plotting
-*`{<ANY_NUMERIC_KEY>_sparkline}`: Base64-encoded sparkline image for the specified key. Replace `<ANY_NUMERIC_KEY>` with any numeric metric key like `cpu_percent` (-> `cpu_percent_sparkline`), `ram_percent` (-> `ram_percent_sparkline`), etc.
+* `{<ANY_NUMERIC_KEY>_sparkline}`: Base64-encoded sparkline image for the specified key. Replace `<ANY_NUMERIC_KEY>` with any numeric metric key.
+    * Example:
+        * `cpu_percent` (-> `cpu_percent_sparkline`)
+        * `ram_percent` (-> `ram_percent_sparkline`)
+    * The type is `str` (data URL of PNG image).
     * Styles like line colors should be configured in `settings.yaml`.
 
 #### Custom
