@@ -2,11 +2,12 @@
 
 import signal
 import sys
+import traceback
 from logging import basicConfig, getLogger
 from pathlib import Path
 
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QTextEdit
 
 from obidome.monitor import TaskbarMonitor
 from obidome.settings import ObidomeSettings
@@ -25,16 +26,32 @@ def main() -> None:
     logger = getLogger(__name__)
     logger.info("Starting Obidome application...")
 
-    settings = ObidomeSettings()
+    try:
+        settings = ObidomeSettings()
 
-    signal.signal(signal.SIGINT, sigint_handler)
-    app = QApplication()
-    app.setQuitOnLastWindowClosed(False)
-    app.setWindowIcon(QIcon(str(Path(__file__).parent / "res" / "icon.ico")))
-    monitor = TaskbarMonitor(settings, app)
-    monitor.show()
+        signal.signal(signal.SIGINT, sigint_handler)
+        app = QApplication()
+        app.setQuitOnLastWindowClosed(False)
+        app.setWindowIcon(QIcon(str(Path(__file__).parent / "res" / "icon.ico")))
+        monitor = TaskbarMonitor(settings, app)
+        monitor.show()
 
-    sys.exit(app.exec())
+        exit_code = app.exec()
+    except KeyboardInterrupt:
+        logger.info("Received KeyboardInterrupt, exiting...")
+        sys.exit(0)
+    except Exception:
+        logger.exception("Unhandled exception occurred.")
+        error_app = QApplication()
+        error_app.setWindowIcon(QIcon(str(Path(__file__).parent / "res" / "icon.ico")))
+        error_log_widget = QTextEdit()
+        error_log_widget.setReadOnly(True)
+        error_log_widget.setWindowTitle("Obidome - Error")
+        error_log_widget.setMinimumSize(600, 400)
+        error_log_widget.setPlainText(f"An unhandled exception occurred:\n\n{traceback.format_exc()}")
+        error_log_widget.show()
+        error_app.exec()
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":
