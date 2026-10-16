@@ -1,15 +1,57 @@
 """System values module."""
 
 import ctypes
+import shlex
 import subprocess
+import threading
 from collections.abc import Callable
 from logging import getLogger
-from time import time
+from time import monotonic, time
 
 import psutil
 
 from obidome.plot import SparklineGenerator
-from obidome.settings import SparklineSettings
+from obidome.settings import CustomCommandSettings, SparklineSettings
+
+
+class CustomCommandRunner:
+    """Run a custom command in the background and keep its latest output."""
+
+    def __init__(self, settings: CustomCommandSettings) -> None:
+        """Initialize the runner."""
+        self.logger = getLogger(__name__)
+        self._settings = settings
+        self._value = "..."
+        self._last_started = -float("inf")
+        self._thread: threading.Thread | None = None
+
+    def get(self) -> str:
+        """Return the latest value, starting a new execution in background if due."""
+        due = monotonic() - self._last_started >= self._settings.interval_sec
+        if due and (self._thread is None or not self._thread.is_alive()):
+            self._last_started = monotonic()
+            self._thread = threading.Thread(target=self._run, daemon=True)
+            self._thread.start()
+        return self._value
+
+    def _run(self) -> None:
+        command = self._settings.command if self._settings.shell else shlex.split(self._settings.command, posix=False)
+        try:
+            result = subprocess.run(  # noqa: S603, PLW1510 (security of the command is user's responsibility)
+                command,
+                capture_output=True,
+                text=True,
+                shell=self._settings.shell,
+                timeout=self._settings.timeout_sec,
+                creationflags=subprocess.CREATE_NO_WINDOW,
+            )
+            self._value = result.stdout.strip()
+        except subprocess.TimeoutExpired:
+            self.logger.warning("Custom command timed out: %s", self._settings.command)
+            self._value = "N/A"
+        except OSError:
+            self.logger.exception("Failed to execute custom command: %s", self._settings.command)
+            self._value = "N/A"
 
 
 class LazySystemValueFetcher(dict):
@@ -18,7 +60,7 @@ class LazySystemValueFetcher(dict):
     def __init__(
         self,
         sparkline_settings: dict[str, SparklineSettings],
-        custom_keys: dict[str, str],
+        custom_keys: dict[str, str | CustomCommandSettings],
     ) -> None:
         """Initialize the LazySystemValueFetcher."""
         super().__init__()
@@ -39,7 +81,7 @@ class LazySystemValueFetcher(dict):
     def load_settings(
         self,
         sparkline_settings: dict[str, SparklineSettings],
-        custom_keys: dict[str, str],
+        custom_keys: dict[str, str | CustomCommandSettings],
     ) -> None:
         """Load settings for the value fetcher."""
         for k, v in sparkline_settings.items():
@@ -47,7 +89,10 @@ class LazySystemValueFetcher(dict):
             if hasattr(self, f"_{k}_sparkline_plotter"):
                 delattr(self, f"_{k}_sparkline_plotter")
 
-        self._custom_keys = custom_keys
+        self._custom_runners = {
+            k: CustomCommandRunner(v if isinstance(v, CustomCommandSettings) else CustomCommandSettings(command=v))
+            for k, v in custom_keys.items()
+        }
         self.logger.info("System value fetcher settings loaded.")
 
     def __getitem__(self, key: str) -> float | int | str:
@@ -80,10 +125,9 @@ class LazySystemValueFetcher(dict):
         # Custom command
         if (value := self.load_from_cache(key)) is not None:
             return value
-        if key in self._custom_keys:
-            value = subprocess.run(  # noqa: S602, PLW1510 (security of the command is user's responsibility)
-                self._custom_keys[key], capture_output=True, text=True, shell=True
-            ).stdout.strip()
+        if key in self._custom_runners:
+            # Runs in background; returns the latest available value without blocking the UI
+            value = self._custom_runners[key].get()
             self.put_to_cache(key, value)
             return value
 

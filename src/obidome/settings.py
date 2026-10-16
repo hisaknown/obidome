@@ -4,7 +4,7 @@ from typing import Literal
 
 import yaml
 from platformdirs import user_config_path
-from pydantic import Field
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict, YamlConfigSettingsSource
 
 CONFIG_PATH = user_config_path("obidome") / "settings.yaml"
@@ -42,6 +42,19 @@ class SparklineSettings(BaseSettings):
     )
 
 
+class CustomCommandSettings(BaseModel):
+    """Settings for a custom command key."""
+
+    command: str = Field(description="Command to execute. Its stdout is used as the value.")
+    interval_sec: float = Field(
+        default=0.0, description="Minimum interval between executions in seconds. 0 means every refresh."
+    )
+    shell: bool = Field(
+        default=True, description="Run the command through the shell (cmd.exe). Disable to avoid shell overhead."
+    )
+    timeout_sec: float = Field(default=10.0, description="Timeout for a single execution in seconds")
+
+
 class ObidomeSettings(BaseSettings):
     """Settings for Obidome application."""
 
@@ -56,7 +69,10 @@ class ObidomeSettings(BaseSettings):
         description="Settings for sparkline plots. Dictionary mapping metric keys to their settings.",
     )
 
-    custom_keys: dict[str, str] = Field(default={}, description="Custom keys and their corresponding shell commands")
+    custom_keys: dict[str, str | CustomCommandSettings] = Field(
+        default={},
+        description="Custom keys and their commands. Value is a shell command string or a detailed settings mapping.",
+    )
 
     container_stylesheet: str = Field(
         default=("font-family: 'Consolas', 'monospace';\nfont-size: 14px;\npadding: 0px;\n"),

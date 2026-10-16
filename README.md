@@ -87,8 +87,13 @@ sparkline_settings:  # Settings for sparkline plots
     fill_style: gradient
     fill_color: '#4499ff'
 
-custom_keys:  # Custom shell commands to display their output (key_name: command)
+custom_keys:  # Custom commands to display their output (key_name: command, or key_name: detailed settings)
   gpu_temp: "nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader"
+  weather:
+    command: "curl -s wttr.in/?format=%t"
+    interval_sec: 600  # Minimum interval between executions (0: every refresh)
+    shell: false  # Run directly without cmd.exe (default: true)
+    timeout_sec: 10  # Timeout for a single execution (default: 10)
 
 container_stylesheet: |  # CSS styles for the whole content
   font-family: 'Consolas', 'monospace';
@@ -193,7 +198,8 @@ Use these placeholders in your `info_label` HTML template. They will be replaced
     * Styles like line colors should be configured in `settings.yaml`.
 
 #### Custom
-* `{custom_key_name}`: The output of the shell command defined in `custom_keys`.
+* `{custom_key_name}`: The output of the command defined in `custom_keys`.
+    * Commands run in the background, so slow commands do not block the UI. The latest output is shown until the next execution completes (`...` before the first one).
 
 ## Development
 
