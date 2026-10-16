@@ -1,7 +1,7 @@
 """Settings window for Obidome application."""
 
 import json
-from typing import TypeVar, get_args
+from typing import TypeVar, get_args, get_origin
 
 from pydantic import BaseModel, TypeAdapter
 from PySide6.QtWidgets import (
@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from obidome.settings import ObidomeSettings, SparklineSettings
+from obidome.settings import ObidomeSettings
 
 T = TypeVar("T")
 
@@ -31,7 +31,7 @@ class SettingsWindow(QDialog):
         self._current_settings = ObidomeSettings()
         self.init_ui()
 
-    def generate_widgets[T: BaseModel](  # noqa: C901 # TODO (hisaknown): Reduce complexity
+    def generate_widgets[T: BaseModel](
         self, form_layout: QFormLayout, model: type[T], current: T
     ) -> dict[str, QWidget | dict]:
         """Recursively generate widgets for the model fields."""
@@ -53,16 +53,10 @@ class SettingsWindow(QDialog):
                 else:
                     widget = QLineEdit(getattr(current, k))
                 form_layout.addRow(f"{k} ({v.description}):", widget)
-            elif str(v.annotation) == "dict[str, str]":
+            elif get_origin(v.annotation) is dict:
                 widget = QTextEdit()
                 dict_value = getattr(current, k)
-                widget.setPlainText(json.dumps(dict_value, indent=4))
-                widget.setMinimumHeight(100)
-                form_layout.addRow(f"{k} ({v.description}; JSON format):", widget)
-            elif str(v.annotation) == "dict[str, obidome.settings.SparklineSettings]":
-                widget = QTextEdit()
-                dict_value = getattr(current, k)
-                ta = TypeAdapter(dict[str, SparklineSettings])
+                ta = TypeAdapter(v.annotation)
                 widget.setPlainText(ta.dump_json(dict_value, indent=4).decode("utf-8"))
                 widget.setMinimumHeight(100)
                 form_layout.addRow(f"{k} ({v.description}; JSON format):", widget)
@@ -72,7 +66,7 @@ class SettingsWindow(QDialog):
                     widget.addItem(str(option))
                 widget.setCurrentText(str(getattr(current, k)))
                 form_layout.addRow(f"{k} ({v.description}):", widget)
-            elif issubclass(v.annotation, BaseModel):
+            elif isinstance(v.annotation, type) and issubclass(v.annotation, BaseModel):
                 # Nested model
                 nested_form_layout = QFormLayout()
                 form_layout.addRow(f"{k} ({v.description}):", nested_form_layout)
