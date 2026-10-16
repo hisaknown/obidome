@@ -66,7 +66,8 @@ Obidome is configured via a YAML file. You can access the settings via the GUI o
 
 ```yaml
 refresh_interval_msec: 1000  # Refresh every 1 second
-margin_right: 10  # Margin from the right edge of the taskbar
+margin_right: 10  # Margin from the tray area (horizontal taskbar)
+margin_bottom: 10  # Margin from the tray area (vertical taskbar)
 sparkline_settings:  # Settings for sparkline plots
   cpu_percent:
     width: 50  # Width of the sparkline image (can be scaled in HTML)
@@ -120,9 +121,21 @@ info_label: |  # HTML template for the info label
   </table>
 ```
 
+`info_label_vertical` is used instead of `info_label` when the taskbar is placed vertically (left or right edge of the screen).
+Since the vertical taskbar is narrow, a compact single-column layout is recommended:
+
+```yaml
+info_label_vertical: |
+  <table width="100%" cellspacing="0" cellpadding="0">
+      <tr><td align="center" style="color: #aaaaaa; font-size: 10px;">CPU</td></tr>
+      <tr><td align="center" style="color: #ffffff;">{cpu_percent:3.0f}%</td></tr>
+      <tr><td align="center"><img src="{cpu_percent_sparkline}" width="32" height="15"></td></tr>
+  </table>
+```
+
 ### Available Template Keys
 
-Use these placeholders in your `info_label` HTML template. They will be replaced with real-time values.
+Use these placeholders in your `info_label` / `info_label_vertical` HTML templates. They will be replaced with real-time values.
 
 #### CPU
 | Key | Type | Description |

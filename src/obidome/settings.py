@@ -60,6 +60,9 @@ class ObidomeSettings(BaseSettings):
 
     refresh_interval_msec: int = Field(default=1000, description="Refresh interval in milliseconds")
     margin_right: int = Field(default=10, description="Right margin from the tray area in pixels")
+    margin_bottom: int = Field(
+        default=10, description="Bottom margin from the tray area in pixels (for vertical taskbar)"
+    )
 
     sparkline_settings: dict[str, SparklineSettings] = Field(
         default={
@@ -94,6 +97,18 @@ class ObidomeSettings(BaseSettings):
 </table>
 """,  # noqa: E501
         description="HTML template for the info label. Can be multiline.",
+    )
+    info_label_vertical: str = Field(
+        default="""<table width="100%" cellspacing="0" cellpadding="0">
+    <tr><td align="center" style="color: #aaaaaa; font-size: 10px;">CPU</td></tr>
+    <tr><td align="center" style="color: #ffffff; white-space: pre;">{cpu_percent:3.0f}<span style="font-size:9px">%</span></td></tr>
+    <tr><td align="center"><img src="{cpu_percent_sparkline}" width="32" height="15"></td></tr>
+    <tr><td align="center" style="color: #aaaaaa; font-size: 10px; padding-top: 4px;">RAM</td></tr>
+    <tr><td align="center" style="color: #ffffff; white-space: pre;">{ram_percent:3.0f}<span style="font-size:9px">%</span></td></tr>
+    <tr><td align="center"><img src="{ram_percent_sparkline}" width="32" height="15"></td></tr>
+</table>
+""",  # noqa: E501
+        description="HTML template for the info label when the taskbar is vertical. Can be multiline.",
     )
 
     model_config = SettingsConfigDict(yaml_file=CONFIG_PATH, yaml_file_encoding="utf-8")

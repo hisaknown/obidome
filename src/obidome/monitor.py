@@ -6,8 +6,8 @@ from ctypes import wintypes
 from logging import getLogger
 from typing import ClassVar
 
-from PySide6.QtCore import Qt, QTimer, QUrl
-from PySide6.QtGui import QAction, QContextMenuEvent, QDesktopServices
+from PySide6.QtCore import QSize, Qt, QTimer, QUrl
+from PySide6.QtGui import QAction, QContextMenuEvent, QDesktopServices, QResizeEvent, QScreen
 from PySide6.QtWidgets import QApplication, QLabel, QMenu, QSystemTrayIcon, QVBoxLayout, QWidget
 
 from obidome.log_window import LogWindow
@@ -35,15 +35,22 @@ SM_CXSCREEN = 0
 SM_CYSCREEN = 1
 
 
-def get_tray_notify_width_physical(hwnd_taskbar: int) -> int:
-    """Get the physical width of the TrayNotifyWnd area."""
+def get_window_rect(hwnd: int) -> RECT:
+    """Get the physical rectangle of the window."""
+    rect = RECT()
+    user32.GetWindowRect(hwnd, ctypes.byref(rect))
+    return rect
+
+
+def get_tray_notify_rect(hwnd_taskbar: int) -> RECT | None:
+    """Get the physical rectangle of the TrayNotifyWnd area."""
     hwnd_tray = user32.FindWindowExW(hwnd_taskbar, 0, "TrayNotifyWnd", None)
     if not hwnd_tray:
-        return 150
+        return None
     rect = RECT()
     if user32.GetWindowRect(hwnd_tray, ctypes.byref(rect)):
-        return rect.right - rect.left
-    return 150
+        return rect
+    return None
 
 
 def is_fullscreen_app_active(hwnd_taskbar: int) -> bool:
@@ -75,6 +82,19 @@ def is_fullscreen_app_active(hwnd_taskbar: int) -> bool:
     return (rect.right - rect.left) >= scr_w and (rect.bottom - rect.top) >= scr_h
 
 
+def find_screen_containing(app: QApplication, rect: RECT) -> QScreen | None:
+    """Find the screen that fully contains the given physical rectangle."""
+    for screen in app.screens():
+        # On Windows, Qt keeps the top-left of the screen geometry in physical coordinates
+        geo = screen.geometry()
+        dpr = screen.devicePixelRatio()
+        left, top = geo.left(), geo.top()
+        right, bottom = left + geo.width() * dpr, top + geo.height() * dpr
+        if left <= rect.left and top <= rect.top and rect.right <= right and rect.bottom <= bottom:
+            return screen
+    return None
+
+
 class TaskbarMonitor(QWidget):
     """Qt widget that monitors system stats and stays in the taskbar."""
 
@@ -97,6 +117,7 @@ class TaskbarMonitor(QWidget):
 
         self._hwnd_taskbar: int = 0
         self._hwnd_self: int = 0
+        self._snapped_size: QSize | None = None
 
         self._should_stay = False
 
@@ -159,12 +180,13 @@ class TaskbarMonitor(QWidget):
             return
 
         self._value_fetcher.clear_cache()
+        template = self._info_label_vertical_template if self.is_taskbar_vertical() else self._info_label_template
         try:
             html_content = f"""
             <div style="
                 {self._container_stylesheet}
             ">
-                {self._info_label_template.format_map(self._value_fetcher)}
+                {template.format_map(self._value_fetcher)}
             </div>
             """
         except ValueError as e:
@@ -186,8 +208,10 @@ class TaskbarMonitor(QWidget):
     def load_settings(self, settings: ObidomeSettings) -> None:
         """Reload settings from the settings object."""
         self._margin_right = settings.margin_right
+        self._margin_bottom = settings.margin_bottom
         self._container_stylesheet = settings.container_stylesheet
         self._info_label_template = settings.info_label
+        self._info_label_vertical_template = settings.info_label_vertical
         self._refresh_interval_msec = settings.refresh_interval_msec
 
         if hasattr(self, "_value_fetcher"):
@@ -251,32 +275,65 @@ class TaskbarMonitor(QWidget):
                 self.load_settings(ObidomeSettings())
         self._should_stay = False
 
+    def is_taskbar_vertical(self) -> bool:
+        """Check if the taskbar is placed vertically (left or right edge of the screen)."""
+        tb_rect = get_window_rect(self._hwnd_taskbar)
+        return (tb_rect.bottom - tb_rect.top) > (tb_rect.right - tb_rect.left)
+
     def snap_position(self) -> None:
         """Snap the widget position to the taskbar tray area."""
         if not self._hwnd_taskbar:
             return
 
         # Get physical coordinates
-        tb_rect = RECT()
-        user32.GetWindowRect(self._hwnd_taskbar, ctypes.byref(tb_rect))
-
+        tb_rect = get_window_rect(self._hwnd_taskbar)
         tb_phys_x = tb_rect.left
         tb_phys_y = tb_rect.top
         tb_phys_w = tb_rect.right - tb_rect.left
         tb_phys_h = tb_rect.bottom - tb_rect.top
 
-        tray_phys_w = get_tray_notify_width_physical(self._hwnd_taskbar)
+        # Use the scale of the screen where the taskbar is, not the one where this widget currently is.
+        # While the taskbar is being moved, its rect may be transient; skip snapping until it settles.
+        screen = find_screen_containing(self._app, tb_rect)
+        if screen is None:
+            return
+        dpr = screen.devicePixelRatio()
+        origin_x, origin_y = screen.geometry().left(), screen.geometry().top()
 
-        # Convert physical to logical coordinates
-        dpr = self.devicePixelRatio()
-        my_log_w = self._info_label.sizeHint().width()
-        my_log_h = (tb_phys_h / dpr) - 4
+        tray_rect = get_tray_notify_rect(self._hwnd_taskbar)
 
-        target_phys_x = tb_phys_x + tb_phys_w - tray_phys_w - (my_log_w * dpr) - (self._margin_right * dpr)
-        target_phys_y = tb_phys_y + (tb_phys_h - (my_log_h * dpr)) / 2
+        if tb_phys_h > tb_phys_w:
+            # Vertical taskbar: place above the tray area, filling the taskbar width
+            tray_phys_top = tray_rect.top if tray_rect else tb_rect.bottom - 300
+            my_log_w = (tb_phys_w / dpr) - 4
+            my_log_h = self._info_label.heightForWidth(int(my_log_w))
+            if my_log_h < 0:
+                my_log_h = self._info_label.sizeHint().height()
 
-        target_log_x = int(target_phys_x / dpr)
-        target_log_y = int(target_phys_y / dpr)
+            target_phys_x = tb_phys_x + (tb_phys_w - (my_log_w * dpr)) / 2
+            target_phys_y = tray_phys_top - (my_log_h * dpr) - (self._margin_bottom * dpr)
+        else:
+            # Horizontal taskbar: place left of the tray area, filling the taskbar height
+            tray_phys_w = tray_rect.right - tray_rect.left if tray_rect else 150
+            my_log_w = self._info_label.sizeHint().width()
+            my_log_h = (tb_phys_h / dpr) - 4
 
+            target_phys_x = tb_phys_x + tb_phys_w - tray_phys_w - (my_log_w * dpr) - (self._margin_right * dpr)
+            target_phys_y = tb_phys_y + (tb_phys_h - (my_log_h * dpr)) / 2
+
+        target_log_x = int(origin_x + (target_phys_x - origin_x) / dpr)
+        target_log_y = int(origin_y + (target_phys_y - origin_y) / dpr)
+
+        self._snapped_size = QSize(int(my_log_w), int(my_log_h))
         self.move(target_log_x, target_log_y)
-        self.resize(my_log_w, int(my_log_h))
+        self.resize(self._snapped_size)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        """Re-snap if the size was changed externally.
+
+        When the widget moves across screens with different scales, Windows resizes it
+        asynchronously (WM_DPICHANGED) keeping its physical size, which breaks the layout.
+        """
+        super().resizeEvent(event)
+        if self._snapped_size is not None and event.size() != self._snapped_size:
+            QTimer.singleShot(0, self.snap_position)
