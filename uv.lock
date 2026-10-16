@@ -128,7 +128,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/d8/fb/51df3b30b0f9b3e73
 
 [[package]]
 name = "obidome"
-version = "0.2.0"
+version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "platformdirs" },
