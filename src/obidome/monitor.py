@@ -228,6 +228,15 @@ class TaskbarMonitor(QWidget):
 
     def update_loop(self) -> None:
         """Invoke the main update loop for monitoring."""
+        # The taskbar window is recreated when explorer restarts, so look it up every time.
+        # FindWindowW only walks the window list and does not wait for explorer.
+        hwnd_taskbar = user32.FindWindowW("Shell_TrayWnd", None)
+        if not hwnd_taskbar:
+            return
+        if hwnd_taskbar != self._hwnd_taskbar:
+            self.logger.info("Taskbar window changed; following the new one.")
+            self._hwnd_taskbar = hwnd_taskbar
+
         if is_fullscreen_app_active(self._hwnd_taskbar):
             # Hide if a fullscreen app is active
             self._info_label.setText("")
