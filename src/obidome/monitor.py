@@ -30,7 +30,37 @@ class RECT(ctypes.Structure):
     ]
 
 
-GWLP_HWNDPARENT = -8
+HWND_TOPMOST = wintypes.HWND(-1)
+SWP_NOSIZE = 0x0001
+SWP_NOMOVE = 0x0002
+SWP_NOACTIVATE = 0x0010
+SWP_ASYNCWINDOWPOS = 0x4000
+GWL_EXSTYLE = -20
+WS_EX_NOACTIVATE = 0x08000000
+EVENT_OBJECT_REORDER = 0x8004
+WINEVENT_OUTOFCONTEXT = 0x0000
+WINEVENT_SKIPOWNPROCESS = 0x0002
+
+WinEventProc = ctypes.WINFUNCTYPE(
+    None,
+    wintypes.HANDLE,
+    wintypes.DWORD,
+    wintypes.HWND,
+    wintypes.LONG,
+    wintypes.LONG,
+    wintypes.DWORD,
+    wintypes.DWORD,
+)
+user32.SetWinEventHook.restype = wintypes.HANDLE
+user32.SetWinEventHook.argtypes = [
+    wintypes.DWORD,
+    wintypes.DWORD,
+    wintypes.HMODULE,
+    WinEventProc,
+    wintypes.DWORD,
+    wintypes.DWORD,
+    wintypes.DWORD,
+]
 SM_CXSCREEN = 0
 SM_CYSCREEN = 1
 
@@ -120,6 +150,7 @@ class TaskbarMonitor(QWidget):
         self._snapped_size: QSize | None = None
 
         self._should_stay = False
+        self._raise_pending = False
 
         self._value_fetcher = LazySystemValueFetcher(
             sparkline_settings=settings.sparkline_settings,
@@ -140,8 +171,16 @@ class TaskbarMonitor(QWidget):
 
     def init_ui(self) -> None:
         """Initialize the UI components."""
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
+        # Never take activation: if we became active, the taskbar would be re-activated right after
+        # and go above us, causing flicker.
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.Tool
+            | Qt.WindowType.WindowDoesNotAcceptFocus
+        )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -157,14 +196,29 @@ class TaskbarMonitor(QWidget):
     def start_monitor(self) -> None:
         """Start the monitoring process."""
         self._hwnd_self = int(self.winId())
+        ex_style = user32.GetWindowLongPtrW(self._hwnd_self, GWL_EXSTYLE)
+        user32.SetWindowLongPtrW(self._hwnd_self, GWL_EXSTYLE, ex_style | WS_EX_NOACTIVATE)
         self._hwnd_taskbar = user32.FindWindowW("Shell_TrayWnd", None)
         if not self._hwnd_taskbar:
             self.logger.warning("Failed to find taskbar window. Retrying in 1 second...")
             QTimer.singleShot(1000, self.start_monitor)
             return
 
-        # Set owner (make it a child of the taskbar)
-        user32.SetWindowLongPtrW(self._hwnd_self, GWLP_HWNDPARENT, self._hwnd_taskbar)
+        # The taskbar is topmost too, so whenever it is activated it goes above us.
+        # Re-raise whenever the z-order of other windows changes. Out-of-context hooks are
+        # delivered asynchronously via our own message queue, so this does not couple us to
+        # explorer's responsiveness.
+        if not getattr(self, "_win_event_hook", None):
+            self._win_event_proc = WinEventProc(self._on_z_order_changed)
+            self._win_event_hook = user32.SetWinEventHook(
+                EVENT_OBJECT_REORDER,
+                EVENT_OBJECT_REORDER,
+                None,
+                self._win_event_proc,
+                0,
+                0,
+                WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS,
+            )
 
         self.logger.info("Starting monitor with refresh interval %d ms", self._refresh_interval_msec)
         self._timer = QTimer(self)
@@ -202,8 +256,34 @@ class TaskbarMonitor(QWidget):
         self._info_label.setText(html_content)
 
         if not self._should_stay:
-            self.raise_()
+            self.bring_to_top()
             self.snap_position()
+
+    def _on_z_order_changed(self, *_args: object) -> None:
+        """Handle z-order changes of other windows."""
+        # Reorder events come in bursts; coalesce them into a single deferred raise
+        if self._should_stay or self._raise_pending:
+            return
+        self._raise_pending = True
+        QTimer.singleShot(0, self._raise_deferred)
+
+    def _raise_deferred(self) -> None:
+        """Bring the widget to top as requested by the z-order hook."""
+        self._raise_pending = False
+        if not self._should_stay:
+            self.bring_to_top()
+
+    def bring_to_top(self) -> None:
+        """Bring the widget above the taskbar without waiting for other processes."""
+        user32.SetWindowPos(
+            self._hwnd_self,
+            HWND_TOPMOST,
+            0,
+            0,
+            0,
+            0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS,
+        )
 
     def load_settings(self, settings: ObidomeSettings) -> None:
         """Reload settings from the settings object."""
@@ -229,6 +309,8 @@ class TaskbarMonitor(QWidget):
         self._should_stay = True
         self._context_menu.exec(event.globalPos())
         self._should_stay = False
+        # Z-order changes are ignored while the menu is open, so catch up on them now
+        QTimer.singleShot(0, self.bring_to_top)
 
     def make_context_menu(self) -> QMenu:
         """Create the context menu for the widget."""
