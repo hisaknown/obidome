@@ -60,4 +60,5 @@ jobs:
         with:
           name: obidome-${{ github.ref_name }}
           path: .nuitka/ObidomeSetup-*.exe
+          include-hidden-files: true
           if-no-files-found: error
