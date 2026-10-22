@@ -35,7 +35,6 @@ def build_with_nuitka(session: nox.Session) -> None:
         "--assume-yes-for-downloads",
         "--enable-plugin=pyside6",
         "--standalone",
-        "--onefile",
         "--follow-imports",
         "--windows-product-name=Obidome",
         "--windows-file-description=A system monitor that stays on the taskbar.",
@@ -46,6 +45,17 @@ def build_with_nuitka(session: nox.Session) -> None:
         "--output-dir=.nuitka",
         "--output-filename=obidome.exe",
         "src/obidome/main.py",
+    )
+
+@nox.session(venv_backend="uv", python="3.13", tags=["build"])
+def build_installer(session: nox.Session) -> None:
+    """Build the installer from the Nuitka output using Inno Setup."""
+    session.install("-e", ".")
+    session.run(
+        "iscc",
+        f"/DAppVersion={version('obidome')}",
+        "installer/obidome.iss",
+        external=True,
     )
 
 nox.options.sessions = ["format_", "lint", "typecheck"]

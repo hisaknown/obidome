@@ -49,9 +49,15 @@ jobs:
       - name: Build with Nuitka
         run: uv run nox -s build_with_nuitka
 
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build Installer
+        run: uv run nox -s build_installer
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: obidome-${{ github.ref_name }}
-          path: .nuitka/obidome.exe
+          path: .nuitka/ObidomeSetup-*.exe
           if-no-files-found: error
